@@ -3,11 +3,15 @@
 ;; Make Emacs write its custom configuration to a separate file so
 ;; it does not clobber this manually written configuration.
 (setq custom-file "~/.emacs.d/custom.el")
+(load-file custom-file)
 
 ;; Disable some of the GUI features that I do not use.
 (tool-bar-mode 0)
 (scroll-bar-mode 0)
 (menu-bar-mode 0)
+
+;; Stop the splash screen from showing
+(setq inhibit-startup-screen t)
 
 ;; Disable the bell sound on things like C-g when cancelling a command.
 (setq ring-bell-function 'ignore)
@@ -19,6 +23,14 @@
 ;; Display line and column numbers on the modeline
 (line-number-mode)
 (column-number-mode)
+
+;; Use 4 spaces as tab
+(setq-default indent-tabs-mode nil)
+(setq-default tab-width 4)
+(setq indent-line-function 'insert-tab)
+
+;; Disable backup files
+(setq make-backup-files nil)
 
 ;;;; Package Management
 
@@ -50,7 +62,7 @@
 ;; Configure theme, style, fonts, etc.
 (straight-use-package 'catppuccin-theme)
 (load-theme 'catppuccin :no-confirm)
-(setq catppuccin-flavor 'frappe)
+(setq catppuccin-flavor 'latte)
 (catppuccin-reload)
 
 (set-frame-font "Iosevka Term SS08 18" nil t)
@@ -93,7 +105,7 @@
       TeX-parse-self t)
 
 (setq-default TeX-master nil)
-
+ 
 ;;;; Key Bindings
 
 ;; Change the default buffer list to use `ibuffer` instead.
