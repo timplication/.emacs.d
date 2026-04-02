@@ -6,7 +6,7 @@
 ;; it does not clobber this manually written configuration.
     
 (setq custom-file (locate-user-emacs-file "~/.emacs.d/custom.el"))
-;; (load-file custom-file)
+(load-file custom-file)
 
 ;;;;
 ;;;; Package Management
