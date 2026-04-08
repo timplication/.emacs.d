@@ -57,3 +57,7 @@ recentf
 straight/
 url/
 transient/
+eln-cache/
+tree-sitter/
+history
+projects.eld
