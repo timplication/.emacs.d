@@ -46,6 +46,294 @@
     (keyboard-quit))))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;; Modeline Customization ;;
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+
+;; Most of this is based off of `https://github.com/protesilaos/dotfiles'
+
+(defcustom timplication/modeline-string-truncate-length 9
+  "String length after which truncation
+   should be done when the window is too small."
+  :type 'natnum)
+
+(defgroup timplication/modeline nil
+  "Custom modeline that is stylistically close to the default."
+  :group 'mode-line)
+
+(defgroup timplication/modeline-faces nil
+  "Faces for my custom modeline."
+  :group 'timplication/modeline)
+
+(defgroup timplication/icons nil
+  "Get characters, icons, and symbols for things."
+  :group 'convenience)
+
+(defface timplication/modeline-indicator-red
+  '((default :inherit bold)
+    (((class color) (min-colors 88) (background light))
+     :foreground "#880000")
+    (((class color) (min-colors 88) (background dark))
+     :foreground "#ff9f9f")
+    (t :foreground "red"))
+  "Face for modeline indicators."
+  :group 'timplication/modeline-faces)
+
+(defface timplication/icons-icon
+  '((t :inherit (bold fixed-pitch)))
+  "Basic attributes for an icon."
+  :group 'timplication/icons)
+
+(defface timplication/icons-gray
+  '((default :inherit timplication/icons-icon)
+    (((class color) (min-colors 88) (background light))
+     :foreground "gray30")
+    (((class color) (min-colors 88) (background dark))
+     :foreground "gray70")
+    (t :foreground "gray"))
+  "Face for icons."
+  :group 'timplication/icons)
+
+(defun timplication/should-truncate-p (str)
+  "Return non-nil value in case the `str' argument should be truncated."
+  (let ((window-narrow-p
+	 (and (numberp split-width-threshold)
+	      (< (window-total-width) split-width-threshold))))
+    (cond ((or (not (stringp str))
+	       (string-empty-p str)
+	       (string-blank-p str))
+	   nil)
+	  ((and window-narrow-p
+		(> (length str) timplication/modeline-string-truncate-length)
+		(not (one-window-p :no-minibuffer)))))))
+
+(defun timplication/truncate-string (str)
+  "Return the truncated `str', if appropriate. Else, return
+   the unaltered `str'."
+  (let ((half (floor timplication/modeline-string-truncate-length 2)))
+    (if (timplication/should-truncate-p str)
+	(concat (substr str 0 half) "..." (substr str (-half)))
+      str)))
+
+(defun timplication/first-char (str)
+  "Return first character from `str'."
+  (substring str 0 1))
+
+(defun timplication/modeline-string-cut-end (str)
+  "Return truncated STR, if appropriate, else return STR.
+Cut off the end of STR by counting from its start up to
+`timplication/modeline-string-truncate-length'."
+  (if (timplication/should-truncate-p str)
+      (concat (substring str 0 timplication/modeline-string-truncate-length) "...")
+    str))
+
+(defun timplication/buffer-name-help-echo ()
+  "Return the `help-echo' value for `timplication/modeline-buffer-identifier'."
+  (concat
+   (propertize (buffer-name) 'face 'mode-line-buffer-id)
+   "\n"
+   (propertize
+    (or (buffer-file-name)
+	(format "No underlying file.\nDirectory is: %s" default-directory))
+    'face 'font-lock-doc-face)))
+
+(defun timplication/string-abbreviate-but-last (str nthlast)
+  "Abbreviate `str', keeping `nthlast' words intact."
+  (if (timplication/should-truncate-p str)
+      (let* ((all-strings (split-string str "[_-]"))
+             (nbutlast-strings (nbutlast (copy-sequence all-strings) nthlast))
+             (last-strings (nreverse (ntake nthlast (nreverse (copy-sequence all-strings)))))
+             (first-component (mapconcat #'timplication/first-char nbutlast-strings "-"))
+             (last-component (mapconcat #'identity last-strings "-")))
+        (if (string-empty-p first-component)
+            last-component
+          (concat first-component "-" last-component)))
+    str))
+
+(defun timplication/buffer-identification-face ()
+  "Return the appropriate font for the buffer identification string."
+  (let ((file (buffer-file-name)))
+    (cond ((and (mode-line-window-selected-p)
+		file
+		(buffer-modified-p))
+	   '(italic mode-line-buffer-id))
+	  ((and file (buffer-modified-p))
+	   'italic)
+	  ((mode-line-window-selected-p)
+	   'mode-line-buffer-id))))
+
+(defun timplication/buffer-identification-name ()
+  "Give back the name for the current buffer for usage in a mode line."
+  (let ((name (timplication/truncate-string (buffer-name))))
+    (if buffer-read-only
+	(format " %s" name)
+      name)))
+
+(defvar timplication/icons-symbolic
+  '((dired-mode "|*" timplication/icons-gray)
+    (archive-mode "|@" timplication/icons-gray)
+    (diff-mode ">Δ" timplication/icons-gray)
+    (prog-mode ">λ" timplication/icons-gray)
+    (conf-mode ">λ" timplication/icons-gray)
+    (text-mode ">§" timplication/icons-gray)
+    (comint-mode ">>" timplication/icons-gray)
+    (git "" timplication/icons-gray)
+    (eglot "∀" timplication/icons-gray)
+    (t ">." timplication/icons-gray))
+  "Major modes or concepts and their corresponding icons.
+Each element is a cons cell of the form (THING STRING FACE), where THING
+is a symbol STRING is one or more characters that represent THING, and
+FACE is the face to use for it, where applicable.")
+
+(defun timplication/icons--get (thing)
+  "Return `timplication/icons-symbolic' representation of `thing'."
+  (unless (symbolp thing)
+    (error "the thing `%s' is not a symbol" thing))
+  (when (string-suffix-p "-mode" (symbol-name thing))
+    (while-let ((parent (get thing 'derived-mode-parent)))
+      (setq thing parent)))
+  (or (alist-get thing timplication/icons-symbolic)
+      (alist-get t timplication/icons-symbolic)))
+
+(defun timplication/modeline-major-mode-icon ()
+  "Return icon for the major mode."
+  (pcase-let ((`(,icon ,inherent-face) (timplication/icons--get major-mode)))
+    (format "%2s" (propertize icon 'font-lock-face inherent-face 'face inherent-face))))
+
+(defun timplication/modeline-major-mode-name ()
+  "Return capitalized `major-mode' without the -mode suffix."
+  (capitalize (string-replace "-mode" "" (symbol-name major-mode))))
+
+(defun timplication/modeline-major-mode-help-echo ()
+  "Return `help-echo' value for `timplication/modeline-major-mode'."
+  (if-let* ((parent (get major-mode 'derived-mode-parent)))
+      (format "Symbol: `%s'.  Derived from: `%s'" major-mode parent)
+    (format "Symbol: `%s'." major-mode)))
+
+(declare-function vc-git--symbolic-ref "vc-git" (file))
+
+(defun timplication/modeline-vc-branch-name (file backend)
+  "Return capitalized VC branch name for FILE with BACKEND."
+  (when-let* ((rev (vc-working-revision file backend))
+              (branch (or (vc-git--symbolic-ref file)
+                          (substring rev 0 7))))
+    (capitalize branch)))
+
+(declare-function vc-git-working-revision "vc-git" (file))
+
+(defvar timplication/modeline-vc-map
+  (let ((map (make-sparse-keymap)))
+    (define-key map [mode-line down-mouse-1] 'vc-diff)
+    (define-key map [mode-line down-mouse-3] 'vc-root-diff)
+    map)
+  "Keymap to display on VC indicator.")
+
+(defun timplication/modeline-vc-help-echo (file)
+  "Return `help-echo' message for FILE tracked by VC."
+  (format "Revision: %s\nmouse-1: `vc-diff'\nmouse-3: `vc-root-diff'"
+          (vc-working-revision file)))
+
+(defun timplication/modeline-vc-text (file branch &optional face)
+  "Prepare text for Git controlled FILE, given BRANCH.
+With optional FACE, use it to propertize the BRANCH."
+  (format "%s %s"
+	  (pcase-let ((`(,icon ,inherent-face) (timplication/icons--get 'git)))
+	    (propertize icon 'font-lock-face inherent-face 'face inherent-face))
+          ;; (propertize (char-to-string #xE0A0) 'face 'prot-modeline-indicator-gray)
+          (propertize branch
+                      'face face
+                      'mouse-face 'mode-line-highlight
+                      'help-echo (timplication/modeline-vc-help-echo file)
+                      'local-map timplication/modeline-vc-map)))
+
+(defun timplication/modeline-vc-details (file branch &optional face)
+  "Return Git BRANCH details for FILE, truncating it if necessary.
+The string is truncated if the width of the window is smaller
+than `split-width-threshold'."
+  (timplication/modeline-string-cut-end
+   (timplication/modeline-vc-text file branch face)))
+
+(defvar timplication/modeline-vc-faces
+  '((added . vc-locally-added-state)
+    (edited . vc-edited-state)
+    (removed . vc-removed-state)
+    (missing . vc-missing-state)
+    (conflict . vc-conflict-state)
+    (locked . vc-locked-state)
+    (up-to-date . vc-up-to-date-state))
+  "VC state faces.")
+
+(defun timplication/modeline-vc-get-face (key)
+  "Get face from KEY in `prot-modeline--vc-faces'."
+  (alist-get key timplication/modeline-vc-faces 'vc-up-to-date-state))
+
+(defun timplication/modeline-vc-face (file backend)
+  "Return VC state face for FILE with BACKEND."
+  (when-let* ((key (vc-state file backend)))
+    (timplication/modeline-vc-get-face key)))
+
+(defvar-local timplication/modeline-buffer-identifier
+    '(:eval
+      (propertize (timplication/buffer-identification-name)
+		  'face (timplication/buffer-identification-face)
+		  'mouse-face 'mode-line-highlight
+		  'help-echo (timplication/buffer-name-help-echo)))
+    "Mode line construct for identifying the current buffer.")
+
+(defvar-local timplication/modeline-major-mode
+  (list
+   (propertize "%[" 'face 'timplication/modeline-indicator-red)
+   '(:eval
+     (concat
+      (timplication/modeline-major-mode-icon)
+      " "
+      (propertize
+       (timplication/string-abbreviate-but-last
+	(timplication/modeline-major-mode-name)
+	2)
+       'mouse-face 'mode-line-highlight
+       'help-echo (timplication/modeline-major-mode-help-echo))))
+   (propertize "%]" 'face 'timplication/modeline-indicator-red))
+  "Mode line construct for displaying the major mode.")
+
+(defvar-local timplication/modeline-process
+  (list '("" mode-line-process))
+  "Mode line construct for the running process indicator.")
+
+(defvar-local timplication/modeline-eglot
+    `(:eval
+      (when (and (featurep 'eglot) (mode-line-window-selected-p))
+        '(eglot--managed-mode eglot-mode-line-format)))
+  "Mode line construct displaying Eglot information.
+Specific to the current window's mode line.")
+
+(defvar-local timplication/modeline-vc-branch
+    '(:eval
+      (when-let* (((mode-line-window-selected-p))
+                  (file (or buffer-file-name default-directory))
+                  (backend (or (vc-backend file) 'Git))
+                  ;; ((vc-git-registered file))
+                  (branch (timplication/modeline-vc-branch-name file backend))
+                  (face (timplication/modeline-vc-face file backend)))
+        (timplication/modeline-vc-details file branch face)))
+  "Mode line construct to return propertized VC branch.")
+
+(defvar-local timplication/modeline-misc-info
+    '(:eval
+      (when (mode-line-window-selected-p)
+        mode-line-misc-info))
+    "Mode line construct displaying `mode-line-misc-info'.
+Specific to the current window's mode line.")
+
+(dolist (construct '(timplication/modeline-buffer-identifier
+		     timplication/modeline-major-mode
+		     timplication/modeline-process
+                     timplication/modeline-eglot
+		     timplication/modeline-vc-branch
+                     timplication/modeline-misc-info))
+  (put construct 'risky-local-variable t))
+  
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; General Emacs Settings ;;
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
@@ -77,22 +365,6 @@
     (set-face-attribute 'variable-pitch nil
 			:family sans-serif-font
 			:height 1.0))
-  
-  ;; Set Line Numbers
-  (setq display-line-numbers 'relative)
-  (setq-default display-line-numbers-type 'visual
-		display-line-numbers-current-absolute t
-		display-line-numbers-widen t)
-
-  (add-hook 'prog-mode-hook (lambda ()
-                              (display-line-numbers-mode)
-                              ;; enable spellchecker in comments
-                              (flyspell-prog-mode)))
-
-  (add-hook 'text-mode-hook (lambda ()
-                              (display-line-numbers-mode)
-                              ;; enable spellchecker globally
-                              (flyspell-mode)))
 
   ;; Indent with spaces instead of tabs
   (setq indent-tabs-mode nil)
@@ -118,6 +390,25 @@
   ;; entering partially completed commands
   (which-key-mode 1)
   (which-key-setup-side-window-right-bottom)
+  
+  ;; Mode Line
+  (setq-default mode-line-format
+		'("%e"
+		  "  "
+		  timplication/modeline-buffer-identifier
+		  "  "
+		  timplication/modeline-major-mode
+		  timplication/modeline-process
+                  "  "
+		  timplication/modeline-vc-branch
+		  "  "
+                  timplication/modeline-eglot
+                  "  "
+                  mode-line-format-right-align
+                  timplication/modeline-misc-info))
+
+
+
 
   :custom
   ;; Enable context menu.
@@ -134,7 +425,20 @@
   (minibuffer-prompt-properties
    '(read-only t cursor-intangible t face minibuffer-prompt))
 
+  ;; Mode line configuration
+  (mode-line-compact nil)
+  (mode-line-right-align-edge 'right-margin)
+
   :config
+  ;; Delete "eglot" from the `mode-line-misc-info' field, as we
+  ;; manually add a more simplified version of it ourselves
+  ;; using `timplication/eglot'.
+  (with-eval-after-load 'eglot
+    (setq mode-line-misc-info
+          (seq-filter (lambda (item)
+                        (not (eq (car item) 'eglot--managed-mode)))
+                      mode-line-misc-info)))
+  
   ;; Language Specific - Rust
   (add-hook 'rust-ts-mode-hook #'eglot-ensure)
 
@@ -166,10 +470,43 @@
 ;; Theming ;;
 ;;;;;;;;;;;;;
 
-(use-package catppuccin-theme
-    :config
-    (setq catppuccin-flavor 'mocha)
-    (load-theme 'catppuccin :no-confirm-loading))
+(use-package modus-themes
+  :config
+  (setq modus-themes-italic-constructs t
+	modus-themes-bold-constructs nil)
+
+  (modus-themes-load-theme 'modus-vivendi)
+
+  (define-key global-map (kbd "<f5>") #'modus-themes-toggle)
+
+  (defun timplication/modeline-set-faces ()
+    (modus-themes-with-colors
+      (custom-set-faces
+       `(timplication/modeline-indicator-red ((,c :inherit bold :foreground ,red))))))
+  
+  (add-hook 'modus-themes-after-load-theme-hook #'timplication/modeline-set-faces))
+
+
+(use-package spacious-padding
+  :ensure t
+  :config
+  ;; These are the default values, but I keep them here for visibility.
+  ;; Also check `spacious-padding-subtle-frame-lines'.
+  (setq spacious-padding-widths
+	'(:internal-border-width 15
+          :header-line-width 4
+          :mode-line-width 6
+          :tab-width 4
+          :right-divider-width 15
+          :scroll-bar-width 12
+	  :left-fringe-width 20
+	  :right-fringe-width 20))
+  (setq spacious-padding-subtle-mode-line nil)
+
+  (spacious-padding-mode 1)
+
+  ;; Set a key binding if you need to toggle spacious padding.
+  (define-key global-map (kbd "<f8>") #'spacious-padding-mode))
 
 (use-package nerd-icons)
 
@@ -187,10 +524,6 @@
 (use-package nerd-icons-dired
   :hook
   (dired-mode . nerd-icons-dired-mode))
-
-(use-package rainbow-delimiters
-  :hook
-  (prog-mode . rainbow-delimiters-mode))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; Syntax Highlighting ;;
@@ -359,27 +692,41 @@
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
 (use-package pdf-tools
-  :mode ("\\.pdf\\'" . pdf-view-mode)
-  :custom
-  (pdf-view-display-size 'fit-page)
   :config
   (pdf-loader-install)
-  (add-hook 'pdf-view-mode-hook #'pdf-view-roll-minor-mode))
+  (add-hook 'pdf-view-mode-hook (lambda ()
+				  (pdf-view-roll-minor-mode)
+				  (pdf-view-themed-minor-mode))))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; Filetype Specific - LaTeX ;;
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
 (use-package auctex
-  :mode ("\\.tex\\'" . LaTeX-mode)
   :custom
+  ;; Parse the file when saving it
+  (TeX-auto-save t)
+  ;; Parse the file when first loading it.
+  (TeX-parse-self t)
+  ;; Always convert tabs to spaces automatically.
+  (TeX-auto-untabify t)
+  ;; Set the default viewer to use the `pdf-tools` viewer inside Emacs.
   (TeX-view-program-selection '((output-pdf "PDF Tools")))
+  (TeX-view-program-list '(("PDF Tools" TeX-pdf-tools-sync-view)))
+  ;; enable support for forward an inverse search with SyncTeX
   (TeX-source-correlate-mode t)
   (TeX-source-correlate-method 'synctex)
+  ;; always start the viewer process automatically, do not ask
   (TeX-source-correlate-start-server t)
+  ;; Always use the XeTeX-engine.
   (TeX-engine 'xetex)
+  ;; The built PDF files always get dumped into a "build/" folder.
   (TeX-output-dir "build")
+  ;; The main entry point file is always called "main" in my projects.
+  (TeX-master "main")
   :config
-  (setq-default TeX-master nil)
+  ;; enable dutch spell checking in Emacs when using `\usepackage[dutch]{babel}'
+  (add-hook 'TeX-language-nl-hook (lambda () (ispell-change-dictionary "dutch")))
+  ;; automatically refresh the viewer after compilation finishes.
   (add-hook 'TeX-after-compilation-finished-functions #'TeX-revert-document-buffer))
  
