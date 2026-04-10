@@ -597,6 +597,47 @@ Specific to the current window's mode line.")
   (scroll-bar-mode -1)
   (menu-bar-mode -1)
 
+  ;; Tab configuration
+  (setq tab-bar-new-button-show nil)
+  (setq tab-bar-close-button-show nil)
+  (setq tab-bar-show 1)
+
+  ;; Unique buffer names
+  (setq uniquify-buffer-name-style 'forward)
+  (setq uniquify-strip-common-suffix t)
+  (setq uniquify-after-kill-buffer-p t)
+
+  ;; Highlight Line
+  (setq hl-line-sticky-flag nil)
+  (setq hl-line-overlay-priority -50)
+
+  ;; Negative space highlight
+  (setq whitespace-style
+        '(face
+          tabs
+          spaces
+          newline
+          tab-mark
+          space-mark
+          newline-mark
+          trailing
+          missing-newline-at-eof
+          space-after-tab::tab
+          space-after-tab::space
+          space-before-tab::tab
+          space-before-tab::space))
+
+  ;; Split preferences
+  (setq split-window-preferred-direction 'horizontal)
+  (setq window-combination-resize t)
+  (setq even-window-sizes 'height-only)
+  (setq window-sides-vertical nil)
+  (setq switch-to-buffer-in-dedicated-window 'pop)
+  (setq split-height-threshold 85)
+  (setq split-width-threshold 125)
+  (setq window-min-height 3)
+  (setq window-min-width 30)
+  
   ;; Stop the default splash screen from showing up. 
   (setq inhibit-startup-screen t)
   
@@ -721,6 +762,17 @@ Specific to the current window's mode line.")
    ;; Make `C-g' exit out of more buffers where the default
    ;; is normally `<ESC> <ESC> <ESC>' (which is annoying).
    ("C-g" . #'timplication/just-quit-already)))
+
+;;;;;;;;;;;;;;;;;;;;;;
+;; PATH Integration ;;
+;;;;;;;;;;;;;;;;;;;;;;
+
+(use-package exec-path-from-shell
+  :config
+  (when (memq window-system '(mac ns pgtk x))
+    (exec-path-from-shell-initialize))
+  (when (daemonp)
+    (exec-path-from-shell-initialize)))
 
 ;;;;;;;;;;;;;;;;;;
 ;; Text Editing ;;
