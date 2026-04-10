@@ -852,17 +852,17 @@ Specific to the current window's mode line.")
   :config
   (setq theme-buffet-end-user
         '(:night     ; Active between 00:00 and 04:00.
-          (ef-dream ef-melissa-dark ef-owl)
-          :twilight  ; Active between 04:00 and 08:00.
           (ef-trio-dark ef-winter ef-cherie)
+          :twilight  ; Active between 04:00 and 08:00.
+	  (ef-dream ef-melissa-dark ef-owl)
           :morning   ; Active between 08:00 and 12:00.
-          (ef-summer ef-orange ef-melissa-light)        
+          (ef-trio-light ef-kassio ef-day)   
           :day       ; Active between 12:00 and 16:00.
           (ef-trio-light ef-kassio ef-day)            
           :afternoon ; Active between 16:00 and 20:00.
           (ef-summer ef-orange ef-melissa-light)  
           :evening   ; Active between 20:00 and 00:00.
-          (ef-dream ef-melissa-dark ef-owl)))
+          (ef-trio-dark ef-winter ef-cherie)))
 
   (theme-buffet-end-user)
   (theme-buffet-timer-hours 1)
