@@ -11,6 +11,11 @@
 ;; config-version:  0.1.0
 ;;
 
+;; Test
+
+(setq inhibit-x-resources t)
+(setq inhibit-startup-buffer-menu t)
+
 ;;;;;;;;;;;;;;;;;;;;;;;;
 ;; Package Management ;;
 ;;;;;;;;;;;;;;;;;;;;;;;;
@@ -51,6 +56,7 @@
 			    (scroll-bar-width . 12)
 			    (width . (text-pixels . 800))
 			    (height . (text-pixels . 900))
+			    (undecorated . t)
 			    (fullscreen . maximized)))
 
 (add-hook 'after-init-hook (lambda ()
@@ -61,6 +67,7 @@
 							 (scroll-bar-width . 12)
 							 (width . (text-pixels . 800))
 							 (height . (text-pixels . 900))
+							 (undecorated . t)
 							 (fullscreen . maximized)))))
 
 (add-hook 'after-init-hook (lambda () (set-frame-name "home")))

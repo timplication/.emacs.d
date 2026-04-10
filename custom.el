@@ -7,9 +7,7 @@
  '(package-selected-packages
    '(auctex cargo-mode catppuccin-theme corfu marginalia nerd-icons
 	    nerd-icons-completion nerd-icons-corfu nerd-icons-dired
-	    orderless pdf-tools rust-mode))
- '(pdf-view-bounding-box-margin 0.1)
- '(pdf-view-midnight-colors '("white" . "black")))
+	    orderless pdf-tools rust-mode)))
 (custom-set-faces
  ;; custom-set-faces was added by Custom.
  ;; If you edit it by hand, you could mess it up, so be careful.

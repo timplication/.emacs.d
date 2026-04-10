@@ -51,10 +51,12 @@
 
 ;; Most of this is based off of `https://github.com/protesilaos/dotfiles'
 
-(defcustom timplication/modeline-string-truncate-length 9
+(defcustom timplication/modeline-string-truncate-length 14
   "String length after which truncation
    should be done when the window is too small."
   :type 'natnum)
+
+;;;; CUSTOM FACES
 
 (defgroup timplication/modeline nil
   "Custom modeline that is stylistically close to the default."
@@ -68,6 +70,11 @@
   "Get characters, icons, and symbols for things."
   :group 'convenience)
 
+(defface timplication/modeline-indicator-button nil
+  "Generic face used for indicators that have a background.
+Modify this face to, for example, add a :box attribute to all
+relevant indicators.")
+
 (defface timplication/modeline-indicator-red
   '((default :inherit bold)
     (((class color) (min-colors 88) (background light))
@@ -76,6 +83,131 @@
      :foreground "#ff9f9f")
     (t :foreground "red"))
   "Face for modeline indicators."
+  :group 'timplication/modeline-faces)
+
+(defface timplication/modeline-indicator-red-bg
+  '((default :inherit (bold timplication/modeline-indicator-button))
+    (((class color) (min-colors 88) (background light))
+     :background "#aa1111" :foreground "white")
+    (((class color) (min-colors 88) (background dark))
+     :background "#ff9090" :foreground "black")
+    (t :background "red" :foreground "black"))
+  "Face for modeline indicators with a background."
+  :group 'timplication/modeline-faces)
+
+(defface timplication/modeline-indicator-green
+  '((default :inherit bold)
+    (((class color) (min-colors 88) (background light))
+     :foreground "#005f00")
+    (((class color) (min-colors 88) (background dark))
+     :foreground "#73fa7f")
+    (t :foreground "green"))
+  "Face for modeline indicators."
+  :group 'timplication/modeline-faces)
+
+(defface timplication/modeline-indicator-green-bg
+  '((default :inherit (bold timplication/modeline-indicator-button))
+    (((class color) (min-colors 88) (background light))
+     :background "#207b20" :foreground "white")
+    (((class color) (min-colors 88) (background dark))
+     :background "#77d077" :foreground "black")
+    (t :background "green" :foreground "black"))
+  "Face for modeline indicators with a background."
+  :group 'timplication/modeline-faces)
+
+(defface timplication/modeline-indicator-yellow
+  '((default :inherit bold)
+    (((class color) (min-colors 88) (background light))
+     :foreground "#6f4000")
+    (((class color) (min-colors 88) (background dark))
+     :foreground "#f0c526")
+    (t :foreground "yellow"))
+  "Face for modeline indicators."
+  :group 'timplication/modeline-faces)
+
+(defface timplication/modeline-indicator-yellow-bg
+  '((default :inherit (bold timplication/modeline-indicator-button))
+    (((class color) (min-colors 88) (background light))
+     :background "#805000" :foreground "white")
+    (((class color) (min-colors 88) (background dark))
+     :background "#ffc800" :foreground "black")
+    (t :background "yellow" :foreground "black"))
+  "Face for modeline indicators with a background."
+  :group 'timplication/modeline-faces)
+
+(defface timplication/modeline-indicator-blue
+  '((default :inherit bold)
+    (((class color) (min-colors 88) (background light))
+     :foreground "#00228a")
+    (((class color) (min-colors 88) (background dark))
+     :foreground "#88bfff")
+    (t :foreground "blue"))
+  "Face for modeline indicators."
+  :group 'timplication/modeline-faces)
+
+(defface timplication/modeline-indicator-blue-bg
+  '((default :inherit (bold timplication/modeline-indicator-button))
+    (((class color) (min-colors 88) (background light))
+     :background "#0000aa" :foreground "white")
+    (((class color) (min-colors 88) (background dark))
+     :background "#77aaff" :foreground "black")
+    (t :background "blue" :foreground "black"))
+  "Face for modeline indicators with a background."
+  :group 'timplication/modeline-faces)
+
+(defface timplication/modeline-indicator-magenta
+  '((default :inherit bold)
+    (((class color) (min-colors 88) (background light))
+     :foreground "#6a1aaf")
+    (((class color) (min-colors 88) (background dark))
+     :foreground "#e0a0ff")
+    (t :foreground "magenta"))
+  "Face for modeline indicators."
+  :group 'timplication/modeline-faces)
+
+(defface timplication/modeline-indicator-magenta-bg
+  '((default :inherit (bold timplication/modeline-indicator-button))
+    (((class color) (min-colors 88) (background light))
+     :background "#6f0f9f" :foreground "white")
+    (((class color) (min-colors 88) (background dark))
+     :background "#e3a2ff" :foreground "black")
+    (t :background "magenta" :foreground "black"))
+  "Face for modeline indicators with a background."
+  :group 'timplication/modeline-faces)
+
+(defface timplication/modeline-indicator-cyan
+  '((default :inherit bold)
+    (((class color) (min-colors 88) (background light))
+     :foreground "#004060")
+    (((class color) (min-colors 88) (background dark))
+     :foreground "#30b7cc")
+    (t :foreground "cyan"))
+  "Face for modeline indicators."
+  :group 'timplication/modeline-faces)
+
+(defface timplication/modeline-indicator-cyan-bg
+  '((default :inherit (bold timplication/modeline-indicator-button))
+    (((class color) (min-colors 88) (background light))
+     :background "#006080" :foreground "white")
+    (((class color) (min-colors 88) (background dark))
+     :background "#40c0e0" :foreground "black")
+    (t :background "cyan" :foreground "black"))
+  "Face for modeline indicators with a background."
+  :group 'timplication/modeline-faces)
+
+(defface timplication/modeline-indicator-gray
+  '((t :inherit (bold shadow)))
+  "Face for modeline indicators."
+  :group 'timplication/modeline-faces)
+
+(defface timplication/modeline-indicator-gray-bg
+  '((default :inherit (bold timplication/modeline-indicator-button))
+    (((class color) (min-colors 88) (background light))
+     :background "#808080" :foreground "white")
+    (((class color) (min-colors 88) (background dark))
+     :background "#a0a0a0" :foreground "black")
+    (t :inverse-video t))
+  "Face for modeline indicatovrs with a background."
   :group 'timplication/modeline-faces)
 
 (defface timplication/icons-icon
@@ -92,6 +224,8 @@
     (t :foreground "gray"))
   "Face for icons."
   :group 'timplication/icons)
+
+;;;; HELPER FUNCTIONS
 
 (defun timplication/should-truncate-p (str)
   "Return non-nil value in case the `str' argument should be truncated."
@@ -125,6 +259,8 @@ Cut off the end of STR by counting from its start up to
   (if (timplication/should-truncate-p str)
       (concat (substring str 0 timplication/modeline-string-truncate-length) "...")
     str))
+
+;;;; BUFFER NAME
 
 (defun timplication/buffer-name-help-echo ()
   "Return the `help-echo' value for `timplication/modeline-buffer-identifier'."
@@ -168,6 +304,8 @@ Cut off the end of STR by counting from its start up to
 	(format " %s" name)
       name)))
 
+;;;; MAJOR MODE
+
 (defvar timplication/icons-symbolic
   '((dired-mode "|*" timplication/icons-gray)
     (archive-mode "|@" timplication/icons-gray)
@@ -177,7 +315,6 @@ Cut off the end of STR by counting from its start up to
     (text-mode ">§" timplication/icons-gray)
     (comint-mode ">>" timplication/icons-gray)
     (git "" timplication/icons-gray)
-    (eglot "∀" timplication/icons-gray)
     (t ">." timplication/icons-gray))
   "Major modes or concepts and their corresponding icons.
 Each element is a cons cell of the form (THING STRING FACE), where THING
@@ -208,6 +345,8 @@ FACE is the face to use for it, where applicable.")
   (if-let* ((parent (get major-mode 'derived-mode-parent)))
       (format "Symbol: `%s'.  Derived from: `%s'" major-mode parent)
     (format "Symbol: `%s'." major-mode)))
+
+;;;; VERSION CONTROL
 
 (declare-function vc-git--symbolic-ref "vc-git" (file))
 
@@ -271,12 +410,102 @@ than `split-width-threshold'."
   (when-let* ((key (vc-state file backend)))
     (timplication/modeline-vc-get-face key)))
 
-(defvar-local timplication/modeline-buffer-identifier
+;;;; FLYMAKE
+
+(declare-function flymake--severity "flymake" (type))
+(declare-function flymake-diagnostic-type "flymake" (diag))
+
+;; Based on `flymake--mode-line-counter'.
+(defun timplication/modeline-flymake-counter (type)
+  "Compute number of diagnostics in buffer with TYPE's severity.
+TYPE is usually keyword `:error', `:warning' or `:note'."
+  (let ((count 0))
+    (dolist (d (flymake-diagnostics))
+      (when (= (flymake--severity type)
+               (flymake--severity (flymake-diagnostic-type d)))
+        (cl-incf count)))
+    (when (cl-plusp count)
+      (number-to-string count))))
+
+(defvar timplication/modeline-flymake-map
+  (let ((map (make-sparse-keymap)))
+    (define-key map [mode-line down-mouse-1] 'flymake-show-buffer-diagnostics)
+    (define-key map [mode-line down-mouse-3] 'flymake-show-project-diagnostics)
+    map)
+  "Keymap to display on Flymake indicator.")
+
+(defmacro timplication/modeline-flymake-type (type indicator &optional face)
+  "Return function that handles Flymake TYPE with stylistic INDICATOR and FACE."
+  `(defun ,(intern (format "timplication/modeline-flymake-%s" type)) ()
+     (when-let* ((count (timplication/modeline-flymake-counter
+                         ,(intern (format ":%s" type)))))
+       (concat
+        (propertize ,indicator 'face 'timplication/modeline-indicator-gray)
+        (propertize count
+                    'face ',(or face type)
+                    'mouse-face 'mode-line-highlight
+                    ;; FIXME 2023-07-03: Clicking on the text with
+                    ;; this buffer and a single warning present, the
+                    ;; diagnostics take up the entire frame.  Why?
+                    'local-map timplication/modeline-flymake-map
+                    'help-echo "mouse-1: buffer diagnostics\nmouse-3: project diagnostics")
+        " "))))
+
+(timplication/modeline-flymake-type error "‼")
+(timplication/modeline-flymake-type warning "!")
+(timplication/modeline-flymake-type note "!" success)
+
+;;;; defvar-local section
+
+(defvar-local timplication/modeline-kbd-macro
     '(:eval
+      (when (and (mode-line-window-selected-p) defining-kbd-macro)
+        (propertize " KMacro " 'face 'timplication/modeline-indicator-blue-bg)))
+  "Mode line construct displaying `mode-line-defining-kbd-macro'.
+Specific to the current window's mode line.")
+
+(defvar-local timplication/modeline-narrow
+    '(:eval
+      (when (and (mode-line-window-selected-p)
+                 (buffer-narrowed-p)
+                 (not (derived-mode-p 'Info-mode 'help-mode 'special-mode 'message-mode)))
+        (propertize " Narrow " 'face 'timplication/modeline-indicator-cyan-bg)))
+  "Mode line construct to report the narrowed state of the current buffer.")
+
+(defvar-local timplication/modeline-input-method
+    '(:eval
+      (when current-input-method-title
+        (propertize (format " %s " current-input-method-title)
+                    'face 'timplication/modeline-indicator-green-bg
+                    'mouse-face 'mode-line-highlight)))
+    "Mode line construct to report the multilingual environment.")
+
+(defvar-local timplication/modeline-window-dedicated-status
+    '(:eval
+      (when (window-dedicated-p)
+        (propertize " = "
+                    'face 'timplication/modeline-indicator-gray-bg
+                    'mouse-face 'mode-line-highlight)))
+    "Mode line construct for dedicated window indicator.")
+
+(defvar-local timplication/modeline-remote
+    '(:eval
+      (when (file-remote-p default-directory)
+        (propertize " @ "
+                    'face 'timplication/modeline-indicator-red-bg
+                    'mouse-face 'mode-line-highlight)))
+  "Mode line construct for showing remote file name.")
+
+(defvar-local timplication/modeline-buffer-identifier
+  '(:eval
+    (concat
+     (when (and (mode-line-window-selected-p)
+		(buffer-file-name))
+       (concat (nerd-icons-icon-for-file (buffer-file-name)) " "))
       (propertize (timplication/buffer-identification-name)
 		  'face (timplication/buffer-identification-face)
 		  'mouse-face 'mode-line-highlight
-		  'help-echo (timplication/buffer-name-help-echo)))
+		  'help-echo (timplication/buffer-name-help-echo))))
     "Mode line construct for identifying the current buffer.")
 
 (defvar-local timplication/modeline-major-mode
@@ -315,7 +544,19 @@ Specific to the current window's mode line.")
                   (branch (timplication/modeline-vc-branch-name file backend))
                   (face (timplication/modeline-vc-face file backend)))
         (timplication/modeline-vc-details file branch face)))
-  "Mode line construct to return propertized VC branch.")
+    "Mode line construct to return propertized VC branch.")
+
+(defvar-local timplication/modeline-flymake
+  `(:eval
+    (when (and (bound-and-true-p flymake-mode)
+               (mode-line-window-selected-p))
+      (list
+       ;; See the calls to the macro `timplication/modeline-flymake-type'
+       '(:eval (timplication/modeline-flymake-error))
+       '(:eval (timplication/modeline-flymake-warning))
+       '(:eval (timplication/modeline-flymake-note)))))
+  "Mode line construct displaying `flymake-mode-line-format'.
+Specific to the current window's mode line.")
 
 (defvar-local timplication/modeline-misc-info
     '(:eval
@@ -324,11 +565,17 @@ Specific to the current window's mode line.")
     "Mode line construct displaying `mode-line-misc-info'.
 Specific to the current window's mode line.")
 
-(dolist (construct '(timplication/modeline-buffer-identifier
+(dolist (construct '(timplication/modeline-kbd-macro
+                     timplication/modeline-narrow
+                     timplication/modeline-input-method
+                     timplication/modeline-window-dedicated-status
+                     timplication/modeline-remote
+                     timplication/modeline-buffer-identifier
 		     timplication/modeline-major-mode
 		     timplication/modeline-process
                      timplication/modeline-eglot
 		     timplication/modeline-vc-branch
+                     timplication/modeline-flymake
                      timplication/modeline-misc-info))
   (put construct 'risky-local-variable t))
   
@@ -390,10 +637,34 @@ Specific to the current window's mode line.")
   ;; entering partially completed commands
   (which-key-mode 1)
   (which-key-setup-side-window-right-bottom)
+
+  ;; Time Display
+  (setq display-time-format " %a %e %b, %H:%M ")
+  (setq display-time-interval 60)
+  (setq display-time-default-load-average nil)
+  (setq display-time-mail-directory nil)
+  (setq display-time-mail-function nil)
+  (setq display-time-use-mail-icon nil)
+  (setq display-time-mail-string nil)
+  (setq display-time-mail-face nil)
+
+  (setq display-time-string-forms
+        '((propertize
+           (format-time-string display-time-format now)
+           'face 'display-time-date-and-time
+           'help-echo (format-time-string "%a %b %e, %Y" now))
+          " "))
+
+  (display-time-mode 1)
   
   ;; Mode Line
   (setq-default mode-line-format
 		'("%e"
+                  timplication/modeline-kbd-macro
+                  timplication/modeline-narrow
+                  timplication/modeline-buffer-status
+                  timplication/modeline-window-dedicated-status
+                  timplication/modeline-remote
 		  "  "
 		  timplication/modeline-buffer-identifier
 		  "  "
@@ -401,13 +672,13 @@ Specific to the current window's mode line.")
 		  timplication/modeline-process
                   "  "
 		  timplication/modeline-vc-branch
-		  "  "
-                  timplication/modeline-eglot
                   "  "
                   mode-line-format-right-align
+                  timplication/modeline-flymake
+                  "  "
+                  timplication/modeline-eglot
+                  "  "
                   timplication/modeline-misc-info))
-
-
 
 
   :custom
@@ -471,21 +742,79 @@ Specific to the current window's mode line.")
 ;;;;;;;;;;;;;
 
 (use-package modus-themes
+  :demand t)
+
+(use-package ef-themes
+  :demand t
+  :init
+  (ef-themes-take-over-modus-themes-mode 1)
   :config
-  (setq modus-themes-italic-constructs t
-	modus-themes-bold-constructs nil)
-
-  (modus-themes-load-theme 'modus-vivendi)
-
-  (define-key global-map (kbd "<f5>") #'modus-themes-toggle)
-
+  (setq modus-themes-variable-pitch-ui nil
+        modus-themes-mixed-fonts t
+        modus-themes-bold-constructs t
+        modus-themes-italic-constructs t)
+    
   (defun timplication/modeline-set-faces ()
     (modus-themes-with-colors
       (custom-set-faces
-       `(timplication/modeline-indicator-red ((,c :inherit bold :foreground ,red))))))
+       `(timplication/modeline-indicator-red ((,c :inherit bold :foreground ,red)))
+       `(timplication/modeline-indicator-green ((,c :inherit bold :foreground ,green)))
+       `(timplication/modeline-indicator-yellow ((,c :inherit bold :foreground ,yellow)))
+       `(timplication/modeline-indicator-blue ((,c :inherit bold :foreground ,blue)))
+       `(timplication/modeline-indicator-magenta ((,c :inherit bold :foreground ,magenta)))
+       `(timplication/modeline-indicator-cyan ((,c :inherit bold :foreground ,cyan)))
+       `(timplication/modeline-indicator-red-bg
+         ((,c :inherit (bold timplication/modeline-indicator-button)
+              :background ,bg-red-intense :foreground ,fg-main)))
+       `(timplication/modeline-indicator-green-bg
+         ((,c :inherit (bold timplication/modeline-indicator-button)
+              :background ,bg-green-intense :foreground ,fg-main)))
+       `(timplication/modeline-indicator-yellow-bg
+         ((,c :inherit (bold timplication/modeline-indicator-button)
+              :background ,bg-yellow-intense :foreground ,fg-main)))
+       `(timplication/modeline-indicator-blue-bg
+         ((,c :inherit (bold timplication/modeline-indicator-button)
+              :background ,bg-blue-intense :foreground ,fg-main)))
+       `(timplication/modeline-indicator-magenta-bg
+         ((,c :inherit (bold timplication/modeline-indicator-button)
+              :background ,bg-magenta-intense :foreground ,fg-main)))
+       `(timplication/modeline-indicator-cyan-bg
+         ((,c :inherit (bold timplication/modeline-indicator-button)
+              :background ,bg-cyan-intense :foreground ,fg-main))))))
   
-  (add-hook 'modus-themes-after-load-theme-hook #'timplication/modeline-set-faces))
+  (add-hook 'modus-themes-after-load-theme-hook #'timplication/modeline-set-faces)
+  
+  (timplication/modeline-set-faces))
 
+(use-package theme-buffet
+  :after (modus-themes ef-themes)
+  :functions
+  calendar-current-time-zone
+  theme-buffet-timer-hours
+  :bind
+  (("<f5>" . theme-buffet-a-la-carte)
+   ("C-<f5>" . theme-buffet-order-other-period))
+  :init
+  (setq theme-buffet-menu 'end-user)
+  (add-hook 'emacs-startup-hook #'theme-buffet-a-la-carte)
+  :config
+  (setq theme-buffet-end-user
+        '(:night     ; Active between 00:00 and 04:00.
+          (ef-dream ef-melissa-dark ef-owl)
+          :twilight  ; Active between 04:00 and 08:00.
+          (ef-trio-dark ef-winter ef-cherie)
+          :morning   ; Active between 08:00 and 12:00.
+          (ef-summer ef-orange ef-melissa-light)        
+          :day       ; Active between 12:00 and 16:00.
+          (ef-trio-light ef-kassio ef-day)            
+          :afternoon ; Active between 16:00 and 20:00.
+          (ef-summer ef-orange ef-melissa-light)  
+          :evening   ; Active between 20:00 and 00:00.
+          (ef-dream ef-melissa-dark ef-owl)))
+
+  (theme-buffet-end-user)
+  (theme-buffet-timer-hours 1)
+  (theme-buffet-a-la-carte))
 
 (use-package spacious-padding
   :ensure t
@@ -501,14 +830,109 @@ Specific to the current window's mode line.")
           :scroll-bar-width 12
 	  :left-fringe-width 20
 	  :right-fringe-width 20))
-  (setq spacious-padding-subtle-mode-line nil)
+  
+  (setq spacious-padding-subtle-frame-lines
+        '( :mode-line-active spacious-padding-line-active
+           :mode-line-inactive spacious-padding-line-inactive
+           :header-line-active spacious-padding-line-active
+           :header-line-inactive spacious-padding-line-inactive))
 
   (spacious-padding-mode 1)
 
   ;; Set a key binding if you need to toggle spacious padding.
   (define-key global-map (kbd "<f8>") #'spacious-padding-mode))
 
-(use-package nerd-icons)
+(use-package lin
+  :config
+  (setopt lin-face 'lin-magenta)
+  (lin-global-mode 1)
+  (when (string= (getenv "DESKTOP_SESSION") "gnome")
+    (lin-gnome-accent-color-mode 1)))
+
+(use-package pulsar
+  :init
+  (pulsar-global-mode 1)
+  :bind
+  (:map global-map
+    ("C-x l" . pulsar-pulse-line) ; overrides `count-lines-page'
+    ("C-x L" . pulsar-highlight-permanently-dwim)) ; or use `pulsar-highlight-temporarily-dwim'
+  :config
+  (setq pulsar-delay 0.055)
+  (setq pulsar-iterations 5)
+  (setq pulsar-face 'pulsar-green)
+  (setq pulsar-region-face 'pulsar-yellow)
+  (setq pulsar-highlight-face 'pulsar-magenta)
+
+  (defun timplication/pulsar-mark-error ()
+    (pulsar-pulse-line-red)
+    (pulsar-recenter-top)
+    (pulsar-reveal-entry))
+
+  (add-hook 'next-error-hook #'timplication/pulsar-mark-error)
+  (add-hook 'minibuffer-setup-hook #'timplication/pulsar-mark-error))
+
+(use-package cursory
+  :demand t
+  :if (display-graphic-p)
+  :config
+  (setq cursory-presets
+        '((box
+           :blink-cursor-interval 1.2)
+          (box-no-blink
+           :inherit box
+           :blink-cursor-mode -1)
+          (bar
+           :cursor-type (bar . 2)
+           :cursor-color error ; will typically be red
+           :blink-cursor-interval 0.8)
+          (bar-no-other-window
+           :inherit bar
+           :cursor-in-non-selected-windows nil)
+          (bar-no-blink
+           :inherit bar
+           :blink-cursor-mode -1)
+          (underscore
+           :cursor-color warning ; will typically be yellow
+           :cursor-type (hbar . 3)
+
+           :blink-cursor-blinks 50)
+          (underscore-no-other-window
+           :inherit underscore
+           :cursor-in-non-selected-windows nil)
+          (underscore-thick
+           :inherit underscore
+           :cursor-type (hbar . 8)
+           :cursor-in-non-selected-windows (hbar . 3))
+          (t ; the default values
+           :cursor-color unspecified ; use the theme's original
+           :cursor-type box
+           :cursor-in-non-selected-windows hollow
+           :blink-cursor-mode 1
+           :blink-cursor-blinks 10
+           :blink-cursor-interval 0.2
+           :blink-cursor-delay 0.2)))
+  
+    ;; Persist configurations between Emacs sessions.  Also apply the
+    ;; :cursor-color again when swithcing to another theme.
+    (cursory-mode 1)
+
+    ;; We have to use the "point" mnemonic, because C-c c is often the
+    ;; suggested binding for `org-capture' and is the one I use as well.
+    (define-key global-map (kbd "C-c p") #'cursory-set-preset))
+
+(use-package nerd-icons
+  :config
+  ;; Set up a battery indicator on laptops.
+  (require 'battery)
+  (setq battery-mode-line-format
+        (cond
+         ((eq battery-status-function #'battery-linux-proc-acpi)
+	  (format "%s %s" (nerd-icons-mdicon "nf-md-battery") "%b%p%%, %d°C "))
+	 (battery-status-function
+	  (format "%s %s" (nerd-icons-mdicon "nf-md-battery") "%b%p%% "))))
+
+  (when (null (directory-empty-p "/sys/class/power_supply/"))
+    (display-battery-mode 1)))
 
 (use-package nerd-icons-completion
   :after marginalia
@@ -559,10 +983,10 @@ Specific to the current window's mode line.")
   :init (marginalia-mode))
 
 (use-package embark
+  :after (consult flymake)
   :bind
   (("C-." . embark-act)         ;; pick some comfortable binding
-   ("C-;" . embark-dwim)        ;; good alternative: M-.
-   ("C-h B" . embark-bindings)) ;; alternative for `describe-bindings'
+   ("M-." . embark-dwim))        ;; good alternative: M-.
 
   :init
   (setq prefix-help-command #'embark-prefix-help-command)
@@ -571,7 +995,45 @@ Specific to the current window's mode line.")
   (add-to-list 'display-buffer-alist
                '("\\`\\*Embark Collect \\(Live\\|Completions\\)\\*"
                  nil
-                 (window-parameters (mode-line-format . none)))))
+                 (window-parameters (mode-line-format . none))))
+
+  (defun embark-which-key-indicator ()
+    "An embark indicator that displays keymaps using which-key.
+The which-key help message will show the type and value of the
+current target followed by an ellipsis if there are further
+targets."
+    (lambda (&optional keymap targets prefix)
+      (if (null keymap)
+          (which-key--hide-popup-ignore-command)
+	(which-key--show-keymap
+	 (if (eq (plist-get (car targets) :type) 'embark-become)
+             "Become"
+           (format "Act on %s '%s'%s"
+                   (plist-get (car targets) :type)
+                   (embark--truncate-target (plist-get (car targets) :target))
+                   (if (cdr targets) "…" "")))
+	 (if prefix
+             (pcase (lookup-key keymap prefix 'accept-default)
+               ((and (pred keymapp) km) km)
+               (_ (key-binding prefix 'accept-default)))
+           keymap)
+	 nil nil t (lambda (binding)
+                     (not (string-suffix-p "-argument" (cdr binding))))))))
+
+  (setq embark-indicators
+	'(embark-which-key-indicator
+	  embark-highlight-indicator
+	  embark-isearch-highlight-indicator))
+
+  (defun embark-hide-which-key-indicator (fn &rest args)
+    "Hide the which-key indicator immediately when using the completing-read prompter."
+    (which-key--hide-popup-ignore-command)
+    (let ((embark-indicators
+           (remq #'embark-which-key-indicator embark-indicators)))
+      (apply fn args)))
+
+  (advice-add #'embark-completing-read-prompter
+              :around #'embark-hide-which-key-indicator))
 
 (use-package embark-consult)
 
@@ -631,7 +1093,10 @@ Specific to the current window's mode line.")
          ;; Minibuffer history
          :map minibuffer-local-map
          ("M-s" . consult-history)                 ;; orig. next-matching-history-element
-         ("M-r" . consult-history))                ;; orig. previous-matching-history-element
+         ("M-r" . consult-history))                 ;; orig. previous-matching-history-element
+	 ;; ;; Embark Flycheck
+	 ;; :map embark-flymake-map
+	 ;; ("RET" . consult-flymake))
 
   :init
   ;; Tweak the register preview for `consult-register-load',
@@ -654,6 +1119,10 @@ Specific to the current window's mode line.")
    consult-source-recent-file consult-source-project-recent-file
    ;; :preview-key "M-."
    :preview-key '(:debounce 0.4 any))
+
+  (add-hook 'consult-after-jump-hook (lambda ()
+				       (pulsar-recenter-top)
+				       (pulsar-reveal-entry)))
 
   ;; Optionally configure the narrowing key.
   ;; Both < and C-+ work reasonably well.
