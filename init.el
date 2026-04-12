@@ -45,10 +45,13 @@
    (t
     (keyboard-quit))))
 
-(defun timplication/is-laptop-p ()
-  "Return non-nil if emacs is running on a laptop."
+(defun timplication/portable-device-p ()
+  "Return non-nil if emacs is running on a portable device."
   (let ((chassis (string-trim (shell-command-to-string "hostnamectl chassis"))))
-    (string= chassis "laptop")))
+    (or (string= chassis "laptop")
+	(string= chassis "convertible")
+	(string= chassis "tablet")
+	(string= chassis "handset"))))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; Modeline Customization ;;
@@ -980,7 +983,7 @@ Specific to the current window's mode line.")
 (use-package nerd-icons
   :config
   ;; Set up a battery indicator on laptops.
-  (when (timplication/is-laptop-p)
+  (when (timplication/portable-device-p)
     (require 'battery)
     (setq battery-mode-line-format
           (cond
