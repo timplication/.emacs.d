@@ -538,8 +538,19 @@ Specific to the current window's mode line.")
 
 (defvar-local timplication/modeline-eglot
     `(:eval
-      (when (and (featurep 'eglot) (mode-line-window-selected-p))
-        '(eglot--managed-mode eglot-mode-line-format)))
+      (when (and (featurep 'eglot)
+                 (mode-line-window-selected-p))
+	(cl-loop for e in eglot-mode-line-format
+              for render = (format-mode-line e)
+              unless (eq render "")
+              collect (cons render
+                            (eq e 'eglot-mode-line-menu))
+              into rendered
+              finally
+              (return (cl-loop for (rspec . rest) on rendered
+                               for (r . titlep) = rspec
+                               concat r
+                               when rest concat (if titlep ":" " • "))))))
   "Mode line construct displaying Eglot information.
 Specific to the current window's mode line.")
 
@@ -609,6 +620,36 @@ Specific to the current window's mode line.")
   (setq tab-bar-new-button-show nil)
   (setq tab-bar-close-button-show nil)
   (setq tab-bar-show 1)
+
+  ;; Something that helps with embark.el
+  (setq y-or-n-p-use-read-key t)
+
+  ;; Mouse Settings
+  (mouse-wheel-mode 1)
+  (setq mouse-autoselect-window t)
+  (setq focus-follows-mouse t)
+
+  ;; Force eldoc to only use a single line, I find it
+  ;; a bit distracting to see the modeline jumping up and
+  ;; down every time you hover over some piece of code.
+  (setq eldoc-echo-area-use-multiline-p nil)
+
+  ;; In Emacs 27+, use Control + mouse wheel to scale text.
+  (setq mouse-wheel-scroll-amount
+        '(1
+          ((shift) . 5)
+          ((meta) . 0.5)
+          ((control) . text-scale))
+        mouse-drag-copy-region nil
+        make-pointer-invisible t
+        mouse-wheel-progressive-speed t
+        mouse-wheel-follow-mouse t)
+
+  ;; Scrolling behaviour
+  (setq scroll-preserve-screen-position t
+        scroll-conservatively 1 ; affects `scroll-step'
+        scroll-margin 0
+        next-screen-context-lines 0)
 
   ;; Unique buffer names
   (setq uniquify-buffer-name-style 'forward)
@@ -681,11 +722,6 @@ Specific to the current window's mode line.")
   ;; Change the title of the frame
   ;; to display the buffer title only.
   (setq frame-title-format '("%b"))
-  
-  ;; Show a buffer window with command help upon
-  ;; entering partially completed commands
-  (which-key-mode 1)
-  (which-key-setup-side-window-right-bottom)
 
   ;; Time Display
   (setq display-time-format " %a %e %b, %H:%M ")
@@ -734,8 +770,7 @@ Specific to the current window's mode line.")
   ;; Enable context menu.
   (context-menu-mode t)
   
-  ;; Support opening new minibuffers from
-  ;; inside existing mini buffers.
+
   (enable-recursive-minibuffers t)
   
   ;; Hide commands in M-x which do not work in the current mode.
@@ -750,6 +785,15 @@ Specific to the current window's mode line.")
   (mode-line-right-align-edge 'right-margin)
 
   :config
+  ;; Support opening new minibuffers from
+  ;; inside existing mini buffers.
+  (setq enable-recursive-minibuffers t)
+
+  ;; Quality of life stuff
+  (setq help-window-select t)
+  (setq help-window-keep-selected t)
+  (setq scroll-error-top-bottom t)
+  
   ;; Delete "eglot" from the `mode-line-misc-info' field, as we
   ;; manually add a more simplified version of it ourselves
   ;; using `timplication/eglot'.
@@ -757,8 +801,15 @@ Specific to the current window's mode line.")
     (setq mode-line-misc-info
           (seq-filter (lambda (item)
                         (not (eq (car item) 'eglot--managed-mode)))
-                      mode-line-misc-info)))
-  
+                      mode-line-misc-info))
+    (setq eglot-mode-line-format
+		'(eglot-mode-line-session
+		  eglot-mode-line-error
+		  eglot-mode-line-pending-requests
+		  eglot-mode-line-progress))
+    (setq eglot-code-action-indications '()))
+
+
   ;; Language Specific - Rust
   (add-hook 'rust-ts-mode-hook #'eglot-ensure)
 
@@ -766,7 +817,7 @@ Specific to the current window's mode line.")
   (;; Use `M-o' instead of `C-x o' to facilitate faster
    ;; window switching.
    ("M-o" . other-window)
-  
+   
    ;; Make `C-g' exit out of more buffers where the default
    ;; is normally `<ESC> <ESC> <ESC>' (which is annoying).
    ("C-g" . #'timplication/just-quit-already)))
@@ -1026,7 +1077,10 @@ Specific to the current window's mode line.")
 
 (use-package vertico
   :init
-  (vertico-mode))
+  (vertico-mode)
+  (vertico-multiform-mode)
+  (setq vertico-multiform-categories
+        '((embark-keybinding grid))))
 
 (use-package savehist
   :init
@@ -1043,59 +1097,27 @@ Specific to the current window's mode line.")
   :init (marginalia-mode))
 
 (use-package embark
-  :after (consult flymake)
   :bind
   (("C-." . embark-act)         ;; pick some comfortable binding
-   ("M-." . embark-dwim))        ;; good alternative: M-.
+   ("M-." . embark-dwim)        ;; good alternative: M-.
+   ("C-h B" . embark-bindings))
 
   :init
   (setq prefix-help-command #'embark-prefix-help-command)
 
   :config
+  (setq embark-indicators
+      '(embark-minimal-indicator  ; default is embark-mixed-indicator
+        embark-highlight-indicator
+        embark-isearch-highlight-indicator))
+  
   (add-to-list 'display-buffer-alist
                '("\\`\\*Embark Collect \\(Live\\|Completions\\)\\*"
                  nil
-                 (window-parameters (mode-line-format . none))))
+                 (window-parameters (mode-line-format . none)))))
 
-  (defun embark-which-key-indicator ()
-    "An embark indicator that displays keymaps using which-key.
-The which-key help message will show the type and value of the
-current target followed by an ellipsis if there are further
-targets."
-    (lambda (&optional keymap targets prefix)
-      (if (null keymap)
-          (which-key--hide-popup-ignore-command)
-	(which-key--show-keymap
-	 (if (eq (plist-get (car targets) :type) 'embark-become)
-             "Become"
-           (format "Act on %s '%s'%s"
-                   (plist-get (car targets) :type)
-                   (embark--truncate-target (plist-get (car targets) :target))
-                   (if (cdr targets) "…" "")))
-	 (if prefix
-             (pcase (lookup-key keymap prefix 'accept-default)
-               ((and (pred keymapp) km) km)
-               (_ (key-binding prefix 'accept-default)))
-           keymap)
-	 nil nil t (lambda (binding)
-                     (not (string-suffix-p "-argument" (cdr binding))))))))
-
-  (setq embark-indicators
-	'(embark-which-key-indicator
-	  embark-highlight-indicator
-	  embark-isearch-highlight-indicator))
-
-  (defun embark-hide-which-key-indicator (fn &rest args)
-    "Hide the which-key indicator immediately when using the completing-read prompter."
-    (which-key--hide-popup-ignore-command)
-    (let ((embark-indicators
-           (remq #'embark-which-key-indicator embark-indicators)))
-      (apply fn args)))
-
-  (advice-add #'embark-completing-read-prompter
-              :around #'embark-hide-which-key-indicator))
-
-(use-package embark-consult)
+(use-package embark-consult
+  :after (embark consult))
 
 ;; Consult configuration based on the example configuration
 ;; provided in <https://github.com/minad/consult>
@@ -1154,9 +1176,7 @@ targets."
          :map minibuffer-local-map
          ("M-s" . consult-history)                 ;; orig. next-matching-history-element
          ("M-r" . consult-history))                 ;; orig. previous-matching-history-element
-	 ;; ;; Embark Flycheck
-	 ;; :map embark-flymake-map
-	 ;; ("RET" . consult-flymake))
+
 
   :init
   ;; Tweak the register preview for `consult-register-load',
