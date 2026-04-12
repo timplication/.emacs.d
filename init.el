@@ -45,6 +45,11 @@
    (t
     (keyboard-quit))))
 
+(defun timplication/is-laptop-p ()
+  "Return non-nil if emacs is running on a laptop."
+  (let ((chassis (string-trim (shell-command-to-string "hostnamectl chassis"))))
+    (string= chassis "laptop")))
+
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; Modeline Customization ;;
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;
@@ -975,15 +980,15 @@ Specific to the current window's mode line.")
 (use-package nerd-icons
   :config
   ;; Set up a battery indicator on laptops.
-  (require 'battery)
-  (setq battery-mode-line-format
-        (cond
-         ((eq battery-status-function #'battery-linux-proc-acpi)
-	  (format "%s %s" (nerd-icons-mdicon "nf-md-battery") "%b%p%%, %d°C "))
-	 (battery-status-function
-	  (format "%s %s" (nerd-icons-mdicon "nf-md-battery") "%b%p%% "))))
+  (when (timplication/is-laptop-p)
+    (require 'battery)
+    (setq battery-mode-line-format
+          (cond
+           ((eq battery-status-function #'battery-linux-proc-acpi)
+	    (format "%s %s" (nerd-icons-mdicon "nf-md-battery") "%b%p%%, %d°C "))
+	   (battery-status-function
+	    (format "%s %s" (nerd-icons-mdicon "nf-md-battery") "%b%p%% "))))
 
-  (when (null (directory-empty-p "/sys/class/power_supply/"))
     (display-battery-mode 1)))
 
 (use-package nerd-icons-completion
