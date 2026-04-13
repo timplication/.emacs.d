@@ -48,7 +48,8 @@
 (defun timplication/portable-device-p ()
   "Return non-nil if emacs is running on a portable device."
   (let ((chassis (string-trim (shell-command-to-string "hostnamectl chassis"))))
-    (or (string= chassis "laptop")
+    (or (eq system-type 'darwin)
+        (string= chassis "laptop")
 	(string= chassis "convertible")
 	(string= chassis "tablet")
 	(string= chassis "handset"))))
@@ -321,6 +322,7 @@ Cut off the end of STR by counting from its start up to
     (prog-mode ">λ" timplication/icons-gray)
     (conf-mode ">λ" timplication/icons-gray)
     (text-mode ">§" timplication/icons-gray)
+    (vterm-mode ">>" timplication/icons-gray)
     (comint-mode ">>" timplication/icons-gray)
     (git "" timplication/icons-gray)
     (t ">." timplication/icons-gray))
@@ -785,7 +787,6 @@ Specific to the current window's mode line.")
   :custom
   ;; Enable context menu.
   (context-menu-mode t)
-  
 
   (enable-recursive-minibuffers t)
   
@@ -809,7 +810,30 @@ Specific to the current window's mode line.")
   (setq help-window-select t)
   (setq help-window-keep-selected t)
   (setq scroll-error-top-bottom t)
-  
+
+  ;; Dired Configuration
+  (setq dired-recursive-copies 'always)
+  (setq dired-recursive-deletes 'always)
+  (setq delete-by-moving-to-trash t)
+  (setq dired-dwim-target t)
+  (setq dired-auto-revert-buffer #'dired-directory-changed-p) ; also see `dired-do-revert-buffer'
+  (setq dired-make-directory-clickable t) ; Emacs 29.1
+  (setq dired-free-space nil) ; Emacs 29.1
+  (add-hook 'dired-mode-hook (lambda ()
+                               (dired-hide-details-mode)
+                               (hl-line-mode)))
+
+  ;; Tooltips
+  (tooltip-mode 1)
+  (setq tooltip-delay 0.5
+        tooltip-short-delay 0.5
+        x-gtk-use-system-tooltips t
+        tooltip-frame-parameters
+        '((name . "tooltip")
+          (internal-border-width . 10)
+          (border-width . 0)
+          (no-special-glyphs . t)))
+
   ;; Delete "eglot" from the `mode-line-misc-info' field, as we
   ;; manually add a more simplified version of it ourselves
   ;; using `timplication/eglot'.
@@ -1086,6 +1110,26 @@ Specific to the current window's mode line.")
   :config
   (treesit-auto-add-to-auto-mode-alist 'all)
   (global-treesit-auto-mode))
+
+;;;;;;;;;;;;;;;;;;;;;;;;
+;; Terminal Emulation ;;
+;;;;;;;;;;;;;;;;;;;;;;;;
+
+(use-package vterm
+  :config
+  (setq vterm-clear-scrollback-when-clearing t)
+  (setq vterm-kill-buffer-on-exit t)
+  (setq vterm-max-scrollback 50000)
+  :bind
+  (("<f1>" . vterm-other-window)
+   ("C-<f1>" . vterm)))
+
+
+;;;;;;;;;;;;;;;;;;;;;
+;; Version Control ;;
+;;;;;;;;;;;;;;;;;;;;;
+
+(use-package magit)
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; Minibuffer Completion ;;
