@@ -693,17 +693,17 @@ Specific to the current window's mode line.")
   (setq inhibit-startup-screen t)
   
   ;; Configure different fonts.
-  (let ((monospace-font "Iosevka Term SS08")
-	(sans-serif-font "Iosevka Aile"))
-    (set-face-attribute 'default nil
-			:family monospace-font
-			:height 160)
-    (set-face-attribute 'fixed-pitch nil
-			:family monospace-font
-			:height 1.0)
-    (set-face-attribute 'variable-pitch nil
-			:family sans-serif-font
-			:height 1.0))
+  ;; (let ((monospace-font "Iosevka Term SS08")
+  ;; 	(sans-serif-font "Iosevka Aile"))
+  ;;   (set-face-attribute 'default nil
+  ;; 			:family monospace-font
+  ;; 			:height 160)
+  ;;   (set-face-attribute 'fixed-pitch nil
+  ;; 			:family monospace-font
+  ;; 			:height 1.0)
+  ;;   (set-face-attribute 'variable-pitch nil
+  ;; 			:family sans-serif-font
+  ;; 			:height 1.0))
 
   ;; Indent with spaces instead of tabs
   (setq indent-tabs-mode nil)
@@ -892,6 +892,130 @@ Specific to the current window's mode line.")
 ;; Theming ;;
 ;;;;;;;;;;;;;
 
+(use-package fontaine
+  :after (modus-themes ef-themes)
+  :demand t
+  :bind
+  (("C-c f" . fontaine-set-preset)
+   ("C-c F" . fontaine-toggle-preset)
+   ;; Resize keys with global effect
+   ;; Emacs 29 introduces commands that resize the font across all
+   ;; buffers (including the minibuffer), which is what I want, as
+   ;; opposed to doing it only in the current buffer.  The keys are the
+   ;; same as the defaults.
+   ("C-x C-=" . global-text-scale-adjust)
+   ("C-x C-+" . global-text-scale-adjust)
+   ("C-x C-0" . global-text-scale-adjust)
+   :map ctl-x-x-map
+   ("v" . variable-pitch-mode))
+  :config
+  (setq-default text-scale-remap-header-line t) ; Emacs 28
+
+  (setq fontaine-presets
+        '((small
+           :default-height 120)
+          (regular) ; like this it uses all the fallback values and is named `regular'
+          (medium
+           :default-family "Iosevka Curly Slab"
+           :default-height 160
+           :fixed-pitch-family "Iosevka Curly Slab"
+           :variable-pitch-family "Iosevka Aile")
+          (large
+           :default-height 180)
+          (presentation
+           :default-height 200)
+          (jumbo
+           :inherit medium
+           :default-height 260)
+          (t
+           :default-family "Iosevka Curly"
+           :default-weight regular
+           :default-slant normal
+           :default-width normal
+           :default-height 140
+
+           :fixed-pitch-family "Iosevka Curly"
+           :fixed-pitch-weight nil
+           :fixed-pitch-slant nil
+           :fixed-pitch-width nil
+           :fixed-pitch-height 1.0
+
+           :fixed-pitch-serif-family nil
+           :fixed-pitch-serif-weight nil
+           :fixed-pitch-serif-slant nil
+           :fixed-pitch-serif-width nil
+           :fixed-pitch-serif-height 1.0
+
+           :variable-pitch-family "Iosevka Etoile"
+           :variable-pitch-weight nil
+           :variable-pitch-slant nil
+           :variable-pitch-width nil
+           :variable-pitch-height 1.0
+
+           :mode-line-active-family nil
+           :mode-line-active-weight nil
+           :mode-line-active-slant nil
+           :mode-line-active-width nil
+           :mode-line-active-height 1.0
+
+           :mode-line-inactive-family nil
+           :mode-line-inactive-weight nil
+           :mode-line-inactive-slant nil
+           :mode-line-inactive-width nil
+           :mode-line-inactive-height 1.0
+
+           :header-line-family nil
+           :header-line-weight nil
+           :header-line-slant nil
+           :header-line-width nil
+           :header-line-height 1.0
+
+           :line-number-family nil
+           :line-number-weight nil
+           :line-number-slant nil
+           :line-number-width nil
+           :line-number-height 1.0
+
+           :tab-bar-family nil
+           :tab-bar-weight nil
+           :tab-bar-slant nil
+           :tab-bar-width nil
+           :tab-bar-height 1.0
+
+           :tab-line-family nil
+           :tab-line-weight nil
+           :tab-line-slant nil
+           :tab-line-width nil
+           :tab-line-height 1.0
+
+           :bold-family nil
+           :bold-slant nil
+           :bold-weight bold
+           :bold-width nil
+           :bold-height 1.0
+
+           :italic-family nil
+           :italic-weight nil
+           :italic-slant italic
+           :italic-width nil
+           :italic-height 1.0
+
+           :line-spacing nil)))
+
+  (with-eval-after-load 'pulsar
+    (add-hook 'fontaine-set-preset-hook #'pulsar-pulse-line))
+  
+  (fontaine-mode 1)
+  (fontaine-set-preset (or (fontaine-restore-latest-preset) 'regular))
+
+  (defun timplication/enable-variable-pitch ()
+    (unless (derived-mode-p 'mhtml-mode 'nxml-mode 'yaml-mode)
+      (when (bound-and-true-p modus-themes-mixed-fonts)
+        (variable-pitch-mode 1))))
+
+  (add-hook 'modus-themes-after-load-theme-hook (lambda () (fontaine-mode 1)))
+  (add-hook 'text-mode-hook #'timplication/enable-variable-pitch))
+
 (use-package modus-themes
   :demand t)
 
@@ -900,7 +1024,7 @@ Specific to the current window's mode line.")
   :init
   (ef-themes-take-over-modus-themes-mode 1)
   :config
-  (setq modus-themes-variable-pitch-ui nil
+  (setq modus-themes-variable-pitch-ui t
         modus-themes-mixed-fonts t
         modus-themes-bold-constructs t
         modus-themes-italic-constructs t)
