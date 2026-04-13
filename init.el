@@ -1288,7 +1288,7 @@ Specific to the current window's mode line.")
   ;; The built PDF files always get dumped into a "build/" folder.
   (TeX-output-dir "build")
   ;; The main entry point file is always called "main" in my projects.
-  (TeX-master "main")
+  (TeX-master nil)
   :config
   ;; enable dutch spell checking in Emacs when using `\usepackage[dutch]{babel}'
   ;;(add-hook 'TeX-language-nl-hook (lambda () (ispell-change-dictionary "dutch")))
