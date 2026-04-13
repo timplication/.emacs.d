@@ -705,6 +705,9 @@ Specific to the current window's mode line.")
 
   ;; Indent with spaces instead of tabs
   (setq indent-tabs-mode nil)
+
+  ;; set fill column width
+  (setq-default fill-column 100)
   
   ;; Disable the bell sound on things like `C-g' when
   ;; cancelling a command.
@@ -764,6 +767,19 @@ Specific to the current window's mode line.")
                   timplication/modeline-eglot
                   "  "
                   timplication/modeline-misc-info))
+
+  ;; Text Mode Configuration
+  (add-to-list 'auto-mode-alist '("\\`\\(README\\|CHANGELOG\\|COPYING\\|LICENSE\\)\\'" . text-mode))
+
+  (add-hook 'text-mode-hook #'turn-on-auto-fill)
+  (add-hook 'emacs-lisp-mode-hook (lambda () (setq-local sentence-end-double-space t)))
+
+  (with-eval-after-load 'text-mode
+    (setq sentence-end-double-space nil)
+    (setq sentence-end-without-period nil)
+    (setq colon-double-space nil)
+    (setq use-hard-newlines nil)
+    (setq adaptive-fill-mode t))
 
 
   :custom
@@ -1275,7 +1291,7 @@ Specific to the current window's mode line.")
   (TeX-master "main")
   :config
   ;; enable dutch spell checking in Emacs when using `\usepackage[dutch]{babel}'
-  (add-hook 'TeX-language-nl-hook (lambda () (ispell-change-dictionary "dutch")))
+  ;;(add-hook 'TeX-language-nl-hook (lambda () (ispell-change-dictionary "dutch")))
   ;; automatically refresh the viewer after compilation finishes.
   (add-hook 'TeX-after-compilation-finished-functions #'TeX-revert-document-buffer))
  
