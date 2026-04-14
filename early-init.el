@@ -56,7 +56,7 @@
 			    (scroll-bar-width . 12)
 			    (width . (text-pixels . 800))
 			    (height . (text-pixels . 900))
-			    (undecorated . t)
+			    ;;(undecorated . t)
 			    (fullscreen . maximized)))
 
 (add-hook 'after-init-hook (lambda ()
@@ -67,7 +67,7 @@
 							 (scroll-bar-width . 12)
 							 (width . (text-pixels . 800))
 							 (height . (text-pixels . 900))
-							 (undecorated . t)
+							 ;;(undecorated . t)
 							 (fullscreen . maximized)))))
 
 (add-hook 'after-init-hook (lambda () (set-frame-name "home")))
