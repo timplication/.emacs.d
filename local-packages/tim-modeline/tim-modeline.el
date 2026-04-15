@@ -4,7 +4,7 @@
 ;; Author: Tim Baccaert <tim@baccaert.com>
 ;; Created: 14 Apr 2026
 ;; Version: 0.1.0
-;; Package-Requires: ((emacs "29.0") (nerd-icons "0.1.0"))
+;; Package-Requires: ((emacs "29.0") (nerd-icons "0.1.0") (modus-themes "5.0.0") (ef-themes "2.0.0"))
 
 ;;; Commentary:
 
@@ -15,9 +15,13 @@
 
 ;;; Code:
 
+(require 'nerd-icons)
+(require 'modus-themes)
+(require 'ef-themes)
+
 ;;;; Custom Variables
 
-(defcustom tim-modeline-string-truncate-length 26
+(defcustom tim-modeline-string-truncate-length 20
   "String length after which truncation
    should be done when the window is too small."
   :type 'natnum)
@@ -191,9 +195,38 @@ relevant indicators.")
   "Face for icons."
   :group 'tim-modeline-icons)
 
+(defun tim-modeline-set-faces ()
+    "Set face colors in accordance with the active modus or ef theme."
+    (modus-themes-with-colors
+      (custom-set-faces
+       `(tim-modeline-indicator-red ((,c :inherit bold :foreground ,red)))
+       `(tim-modeline-indicator-green ((,c :inherit bold :foreground ,green)))
+       `(tim-modeline-indicator-yellow ((,c :inherit bold :foreground ,yellow)))
+       `(tim-modeline-indicator-blue ((,c :inherit bold :foreground ,blue)))
+       `(tim-modeline-indicator-magenta ((,c :inherit bold :foreground ,magenta)))
+       `(tim-modeline-indicator-cyan ((,c :inherit bold :foreground ,cyan)))
+       `(tim-modeline-indicator-red-bg
+	 ((,c :inherit (bold tim-modeline-indicator-button)
+              :background ,bg-red-intense :foreground ,fg-main)))
+       `(tim-modeline-indicator-green-bg
+	 ((,c :inherit (bold tim-modeline-indicator-button)
+              :background ,bg-green-intense :foreground ,fg-main)))
+       `(tim-modeline-indicator-yellow-bg
+	 ((,c :inherit (bold tim-modeline-indicator-button)
+              :background ,bg-yellow-intense :foreground ,fg-main)))
+       `(tim-modeline-indicator-blue-bg
+	 ((,c :inherit (bold tim-modeline-indicator-button)
+              :background ,bg-blue-intense :foreground ,fg-main)))
+       `(tim-modeline-indicator-magenta-bg
+	 ((,c :inherit (bold tim-modeline-indicator-button)
+              :background ,bg-magenta-intense :foreground ,fg-main)))
+       `(tim-modeline-indicator-cyan-bg
+	 ((,c :inherit (bold tim-modeline-indicator-button)
+              :background ,bg-cyan-intense :foreground ,fg-main))))))
+
 ;;;; Helper Functions
 
-(defun tim-modeline--should-truncate-p (str)
+(defun tim-modeline--string-truncate-p (str)
   "Return non-nil value in case the `str' argument should be truncated."
   (let ((window-narrow-p
 	 (and (numberp split-width-threshold)
@@ -206,29 +239,37 @@ relevant indicators.")
 		(> (length str) tim-modeline-string-truncate-length)
 		(not (one-window-p :no-minibuffer)))))))
 
-(defun tim-modeline-truncate-string (str)
-  "Return the truncated `str', if appropriate. Else, return
-   the unaltered `str'."
-  (let ((half (floor tim-modeline-string-truncate-length 2)))
-    (if (tim-modeline--should-truncate-p str)
-	(concat (substring str 0 half) "..." (substring str (- half)))
-      str)))
+(defun tim-modeline--truncate-p ()
+  "Return non-nil if truncation should happen.
+This is a more general and less stringent variant of
+`tim-modeline--string-truncate-p'."
+  (and (numberp split-width-threshold)
+       (< (window-total-width) split-width-threshold)
+       (not (one-window-p :no-minibuffer))))
 
 (defun tim-modeline--first-char (str)
   "Return first character from `str'."
   (substring str 0 1))
 
+(defun tim-modeline-string-cut-middle (str)
+  "Return the truncated STR, if appropriate. Else, return
+   the unaltered STR."
+  (let ((half (floor tim-modeline-string-truncate-length 2)))
+    (if (tim-modeline--string-truncate-p str)
+	(concat (substring str 0 half) ".." (substring str (- half)))
+      str)))
+
 (defun tim-modeline-string-cut-end (str)
   "Return truncated STR, if appropriate, else return STR.
 Cut off the end of STR by counting from its start up to
 `tim-modeline-string-truncate-length'."
-  (if (tim-modeline--should-truncate-p str)
+  (if (tim-modeline--string-truncate-p str)
       (concat (substring str 0 tim-modeline-string-truncate-length) "...")
     str))
 
 (defun tim-modeline-string-abbreviate-but-last (str nthlast)
   "Abbreviate `str', keeping `nthlast' words intact."
-  (if (tim-modeline--should-truncate-p str)
+  (if (tim-modeline--string-truncate-p str)
       (let* ((all-strings (split-string str "[_-]"))
              (nbutlast-strings (nbutlast (copy-sequence all-strings) nthlast))
              (last-strings (nreverse (ntake nthlast (nreverse (copy-sequence all-strings)))))
@@ -282,7 +323,7 @@ Specific to the current window's mode line.")
 
 ;;;; Buffer Identifier Component
 
-(defun tim-buffer-name-help-echo ()
+(defun tim-modeline-buffer-name-help-echo ()
   "Return the `help-echo' value for `tim-modeline-buffer-identifier'."
   (concat
    (propertize (buffer-name) 'face 'mode-line-buffer-id)
@@ -304,24 +345,32 @@ Specific to the current window's mode line.")
 	  ((mode-line-window-selected-p)
 	   'mode-line-buffer-id))))
 
-(defun tim-modeline-buffer-identification-name ()
-  "Give back the name for the current buffer for usage in a mode line."
-  (let ((name (tim-modeline-truncate-string (buffer-name))))
-    (if buffer-read-only
-	(format " %s" name)
-      name)))
+(defun tim-modeline--buffer-name ()
+  "Return `buffer-name', truncating it if necessary."
+  (when-let* ((name (buffer-name)))
+    (tim-modeline-string-cut-middle name)))
 
 (defvar-local tim-modeline-buffer-identifier
   '(:eval
-    (concat
-     (when (and (mode-line-window-selected-p)
-		(buffer-file-name))
-       (concat (nerd-icons-icon-for-file (buffer-file-name)) " "))
-      (propertize (tim-modeline-buffer-identification-name)
-		  'face (tim-modeline-buffer-identification-face)
-		  'mouse-face 'mode-line-highlight
-		  'help-echo (tim-modeline-buffer-name-help-echo))))
-    "Mode line construct for identifying the current buffer.")
+    (let ((name (propertize (tim-modeline--buffer-name)
+			    'face (tim-modeline-buffer-identification-face)
+			    'mouse-face 'mode-line-highlight
+			    'help-echo (tim-modeline-buffer-name-help-echo)))
+	  (read-only-icon
+	   (when (and (mode-line-window-selected-p)
+		      buffer-read-only)
+	     (pcase-let ((`(,icon ,inherent-face)
+			  (tim-modeline--icons-get 'read-only)))
+	       (format "%2s  " (propertize icon
+					 'font-lock-face inherent-face
+					 'face inherent-face)))))
+	  (file-type-icon
+	   (when (and (buffer-file-name)
+		      (mode-line-window-selected-p))
+	     (require 'nerd-icons)
+	     (format "%2s  " (nerd-icons-icon-for-file (buffer-file-name))))))
+      (concat read-only-icon file-type-icon name)))
+  "Mode line construct for identifying the current buffer.")
 
 ;;;; Major Mode Component
 
@@ -335,6 +384,7 @@ Specific to the current window's mode line.")
     (vterm-mode ">>" tim-modeline-icons-gray)
     (comint-mode ">>" tim-modeline-icons-gray)
     (git "" tim-modeline-icons-gray)
+    (read-only "" tim-modeline-icons-gray)
     (t ">." tim-modeline-icons-gray))
   "Major modes or concepts and their corresponding icons.
 Each element is a cons cell of the form (THING STRING FACE), where THING
@@ -608,29 +658,35 @@ Specific to the current window's mode line.")
 ;;;###autoload
 (defun tim-modeline-setup ()
   "Enable the `tim-modeline' configuration."
-    (tim-modeline-setup-eglot)
+  (interactive)
+  
+  (tim-modeline-setup-eglot)
   (tim-modeline-setup-time-display)
+  
   (setq-default mode-line-format
-		'("%e"
+		        '("%e"
                   tim-modeline-kbd-macro
                   tim-modeline-narrow
-                  tim-modeline-buffer-status
+		          tim-modeline-input-method
                   tim-modeline-window-dedicated-status
                   tim-modeline-remote
-		  "  "
-		  tim-modeline-buffer-identifier
-		  "  "
-		  tim-modeline-major-mode
-		  tim-modeline-process
+		          "  "
+		          tim-modeline-buffer-identifier
+		          "  "
+		          tim-modeline-major-mode
+		          tim-modeline-process
                   "  "
-		  tim-modeline-vc-branch
+		          tim-modeline-vc-branch
                   "  "
                   mode-line-format-right-align
                   tim-modeline-flymake
                   "  "
                   tim-modeline-eglot
                   "  "
-                  tim-modeline-misc-info)))
+                  tim-modeline-misc-info))
+  
+  (add-hook 'modus-themes-after-load-theme-hook #'tim-modeline-set-faces)
+  (tim-modeline-set-faces))
 
 (provide 'tim-modeline)
 ;;; tim-modeline.el ends here

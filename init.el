@@ -144,22 +144,11 @@
   
   ;; Stop the default splash screen from showing up. 
   (setq inhibit-startup-screen t)
-  
-  ;; Configure different fonts.
-  ;; (let ((monospace-font "Iosevka Term SS08")
-  ;; 	(sans-serif-font "Iosevka Aile"))
-  ;;   (set-face-attribute 'default nil
-  ;; 			:family monospace-font
-  ;; 			:height 160)
-  ;;   (set-face-attribute 'fixed-pitch nil
-  ;; 			:family monospace-font
-  ;; 			:height 1.0)
-  ;;   (set-face-attribute 'variable-pitch nil
-  ;; 			:family sans-serif-font
-  ;; 			:height 1.0))
 
   ;; Indent with spaces instead of tabs
-  (setq indent-tabs-mode nil)
+  (setq-default indent-tabs-mode nil
+		tab-width 4
+		fill-column 100)
 
   ;; set fill column width
   (setq-default fill-column 100)
@@ -184,7 +173,7 @@
   ;; Text Mode Configuration
   (add-to-list 'auto-mode-alist '("\\`\\(README\\|CHANGELOG\\|COPYING\\|LICENSE\\)\\'" . text-mode))
 
-  (add-hook 'text-mode-hook #'turn-on-auto-fill)
+  (add-hook 'text-mode-hook #'auto-fill-mode)
   (add-hook 'emacs-lisp-mode-hook (lambda () (setq-local sentence-end-double-space t)))
 
   (with-eval-after-load 'text-mode
@@ -268,6 +257,332 @@
   (when (daemonp)
     (exec-path-from-shell-initialize)))
 
+;;;;;;;;;;;;;;;;;;;;;;;;;
+;; Syntax Highlighting ;;
+;;;;;;;;;;;;;;;;;;;;;;;;;
+
+(use-package treesit-auto
+  :custom
+  (treesit-auto-install 'prompt)
+  :config
+  (setq treesit-auto-langs
+        '(awk bash bibtex blueprint c c-sharp clojure cmake cobol
+              commonlisp cpp css dart dockerfile elixir gitcommit
+              glsl go gomod gowork haskell heex html hyprlang
+              janet-simple java javascript json julia kotlin
+              lua magik make nix nu org perl php proto python r
+              ruby rust scala sql toml tsx typescript typespec
+              typst vue wast wat zig wgsl yaml))
+  (global-treesit-auto-mode))
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;; Filetype Specific - Markdown ;;
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+
+(use-package markdown-mode
+  :after (embark)
+  :mode ("\\.\\(?:md\\|markdown\\|mkd\\|mdown\\|mkdn\\|mdwn\\)\\'" . markdown-mode)
+  :config
+  (setq markdown-list-indent-width 2)
+ 
+  (setq markdown-fontify-code-blocks-natively t))
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;; Filetype Specific - PDF ;;
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+
+(use-package pdf-tools
+  :config
+  (pdf-loader-install)
+  (add-hook 'pdf-view-mode-hook (lambda ()
+				  (pdf-view-roll-minor-mode)
+				  (pdf-view-themed-minor-mode))))
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;; Filetype Specific - LaTeX ;;
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+
+(use-package auctex
+  :custom
+  ;; Parse the file when saving it
+  (TeX-auto-save t)
+  ;; Parse the file when first loading it.
+  (TeX-parse-self t)
+  ;; Always convert tabs to spaces automatically.
+  (TeX-auto-untabify t)
+  ;; Set the default viewer to use the `pdf-tools` viewer inside Emacs.
+  (TeX-view-program-selection '((output-pdf "PDF Tools")))
+  (TeX-view-program-list '(("PDF Tools" TeX-pdf-tools-sync-view)))
+  ;; enable support for forward an inverse search with SyncTeX
+  (TeX-source-correlate-mode t)
+  (TeX-source-correlate-method 'synctex)
+  ;; always start the viewer process automatically, do not ask
+  (TeX-source-correlate-start-server t)
+  ;; Always use the XeTeX-engine.
+  (TeX-engine 'xetex)
+  ;; The built PDF files always get dumped into a "build/" folder.
+  (TeX-output-dir "build")
+  ;; The main entry point file is always called "main" in my projects.
+  (TeX-master nil)
+  :config
+  ;; enable dutch spell checking in Emacs when using `\usepackage[dutch]{babel}'
+  ;;(add-hook 'TeX-language-nl-hook (lambda () (ispell-change-dictionary "dutch")))
+  ;; automatically refresh the viewer after compilation finishes.
+  (add-hook 'TeX-after-compilation-finished-functions #'TeX-revert-document-buffer))
+ 
+;;;;;;;;;;;;;;;;;;;;;;;;
+;; Terminal Emulation ;;
+;;;;;;;;;;;;;;;;;;;;;;;;
+
+(use-package vterm
+  :config
+  (setq vterm-clear-scrollback-when-clearing t)
+  (setq vterm-kill-buffer-on-exit t)
+  (setq vterm-max-scrollback 50000)
+  :bind
+  (("<f1>" . vterm-other-window)
+   ("C-<f1>" . vterm)))
+
+
+;;;;;;;;;;;;;;;;;;;;;
+;; Version Control ;;
+;;;;;;;;;;;;;;;;;;;;;
+
+(use-package magit)
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;; Minibuffer Completion ;;
+;;;;;;;;;;;;;;;;;;;;;;;;;;;
+
+(use-package vertico
+  :init
+  (vertico-mode)
+  (vertico-multiform-mode)
+  (setq vertico-multiform-categories
+        '((embark-keybinding grid))))
+
+(use-package savehist
+  :init
+  (savehist-mode))
+
+(use-package orderless
+  :custom
+  (completion-styles '(orderless basic))
+  (completion-category-overrides nil)
+  (completion-pcm-leading-wildcard t)
+  (completion-category-defaults nil))
+  
+(use-package marginalia
+  :init (marginalia-mode))
+
+(use-package embark
+  :after (markdown-mode)
+  :bind
+  (("C-." . embark-act)         ;; pick some comfortable binding
+   ("M-." . embark-dwim)        ;; good alternative: M-.
+   ("C-h B" . embark-bindings))
+
+  :init
+  (setq prefix-help-command #'embark-prefix-help-command)
+
+  :config
+  (setq embark-indicators
+        '(embark-minimal-indicator  ; default is embark-mixed-indicator
+          embark-highlight-indicator
+          embark-isearch-highlight-indicator))
+
+  ;;;; embark-markdown
+
+  (defun embark-markdown-next-list-item (args)
+    (markdown-next-list-item
+     (+ markdown-list-indent-width (current-indentation))))
+
+  (defun embark-markdown-prev-list-item (args)
+    (markdown-prev-list-item
+     (+ markdown-list-indent-width (current-indentation))))
+
+  (defun embark-markdown-down-list-item (args)
+    (markdown-next-list-item
+     (+ (* markdown-list-indent-width 2)
+        (current-indentation))))
+
+  (defun embark-markdown-up-list-item (args)
+    (markdown-prev-list-item
+     (- (current-indentation)
+        markdown-list-ident-width)))
+
+  (defun embark-markdown-demote-list-item (args)
+    (markdown-demote-list-item))
+
+  (defun embark-markdown-promote-list-item (args)
+    (markdown-promote-list-item))
+
+  (defun embark-markdown-move-list-item-up (args)
+    (markdown-move-list-item-up))
+
+  (defun embark-markdown-move-list-item-down (args)
+    (markdown-move-list-item-down))
+  
+  (defvar-keymap embark-markdown-plain-list-map
+    :doc "Embark action map for plain lists in markdown files."
+    :parent embark-general-map
+    "n" #'embark-markdown-next-list-item
+    "p" #'embark-markdown-prev-list-item
+    "d" #'embark-markdown-down-list-item
+    "u" #'embark-markdown-up-list-item
+    "C-d" #'embark-markdown-demote-list-item
+    "C-p" #'embark-markdown-promote-list-item
+    "C-t" #'embark-markdown-move-list-item-down
+    "C-u C-t" #'embark-markdown-move-list-item-up)
+
+  (dolist (cmd '(embark-markdown-next-list-item
+                 embark-markdown-prev-list-item
+                 embark-markdown-down-list-item
+                 embark-markdown-up-list-item))
+    (add-to-list 'embark-repeat-actions cmd))
+
+  ;; embark-target-finders: requires (TYPE TARGET START . END) format
+  ;; TYPE: symbol looked up in `embark-keymap-alist' to determine keybinds
+  ;; TARGET: string used for highlighting
+  ;; START: buffer position marking start of TARGET
+  ;; END: buffer position marking end of TARGET.
+  (defun embark-markdown-plain-list-item ()
+    "Target a markdown plain list item."
+    (let ((list-item (markdown-cur-list-item-bounds)))
+      (when list-item
+        (pcase-let ((`(,begin ,end ,indent ,nonlist-indent ,marker ,checkbox ,match)
+                     list-item))
+          `(md-plain-list-item ,(buffer-substring-no-properties (+ begin indent) end)
+                               ,begin . ,end)))))   
+
+  (add-to-list 'embark-target-finders 'embark-markdown-plain-list-item)
+
+  (add-to-list 'embark-keymap-alist '(md-plain-list-item . embark-markdown-plain-list-map))
+
+  (add-to-list 'display-buffer-alist
+               '("\\`\\*Embark Collect \\(Live\\|Completions\\)\\*"
+                 nil
+                 (window-parameters (mode-line-format . none)))))
+
+(use-package embark-consult
+  :after (embark consult))
+
+;; Consult configuration based on the example configuration
+;; provided in <https://github.com/minad/consult>
+(use-package consult
+  ;; Replace bindings. Lazily loaded by `use-package'.
+  :bind (;; C-c bindings in `mode-specific-map'
+         ("C-c M-x" . consult-mode-command)
+         ("C-c h" . consult-history)
+         ("C-c k" . consult-kmacro)
+         ("C-c m" . consult-man)
+         ("C-c i" . consult-info)
+         ([remap Info-search] . consult-info)
+         ;; C-x bindings in `ctl-x-map'
+         ("C-x M-:" . consult-complex-command)     ;; orig. repeat-complex-command
+         ("C-x b" . consult-buffer)                ;; orig. switch-to-buffer
+         ("C-x 4 b" . consult-buffer-other-window) ;; orig. switch-to-buffer-other-window
+         ("C-x 5 b" . consult-buffer-other-frame)  ;; orig. switch-to-buffer-other-frame
+         ("C-x t b" . consult-buffer-other-tab)    ;; orig. switch-to-buffer-other-tab
+         ("C-x r b" . consult-bookmark)            ;; orig. bookmark-jump
+         ("C-x p b" . consult-project-buffer)      ;; orig. project-switch-to-buffer
+         ;; Custom M-# bindings for fast register access
+         ("M-#" . consult-register-load)
+         ("M-'" . consult-register-store)          ;; orig. abbrev-prefix-mark (unrelated)
+         ("C-M-#" . consult-register)
+         ;; Other custom bindings
+         ("M-y" . consult-yank-pop)                ;; orig. yank-pop
+         ;; M-g bindings in `goto-map'
+         ("M-g e" . consult-compile-error)
+         ("M-g r" . consult-grep-match)
+         ("M-g f" . consult-flymake)               ;; Alternative: consult-flycheck
+         ("M-g g" . consult-goto-line)             ;; orig. goto-line
+         ("M-g M-g" . consult-goto-line)           ;; orig. goto-line
+         ("M-g o" . consult-outline)               ;; Alternative: consult-org-heading
+         ("M-g m" . consult-mark)
+         ("M-g k" . consult-global-mark)
+         ("M-g i" . consult-imenu)
+         ("M-g I" . consult-imenu-multi)
+         ;; M-s bindings in `search-map'
+         ("M-s d" . consult-find)                  ;; Alternative: consult-fd
+         ("M-s c" . consult-locate)
+         ("M-s g" . consult-grep)
+         ("M-s G" . consult-git-grep)
+         ("M-s r" . consult-ripgrep)
+         ("M-s l" . consult-line)
+         ("M-s L" . consult-line-multi)
+         ("M-s k" . consult-keep-lines)
+         ("M-s u" . consult-focus-lines)
+         ;; Isearch integration
+         ("M-s e" . consult-isearch-history)
+         :map isearch-mode-map
+         ("M-e" . consult-isearch-history)         ;; orig. isearch-edit-string
+         ("M-s e" . consult-isearch-history)       ;; orig. isearch-edit-string
+         ("M-s l" . consult-line)                  ;; needed by consult-line to detect isearch
+         ("M-s L" . consult-line-multi)            ;; needed by consult-line to detect isearch
+         ;; Minibuffer history
+         :map minibuffer-local-map
+         ("M-s" . consult-history)                 ;; orig. next-matching-history-element
+         ("M-r" . consult-history))                 ;; orig. previous-matching-history-element
+
+
+  :init
+  ;; Tweak the register preview for `consult-register-load',
+  ;; `consult-register-store' and the built-in commands.  This improves the
+  ;; register formatting, adds thin separator lines, register sorting and hides
+  ;; the window mode line.
+  (advice-add #'register-preview :override #'consult-register-window)
+  (setq register-preview-delay 0.5)
+
+  ;; Use Consult to select xref locations with preview
+  (setq xref-show-xrefs-function #'consult-xref
+        xref-show-definitions-function #'consult-xref)
+
+  :config
+  (consult-customize
+   consult-theme :preview-key '(:debounce 0.2 any)
+   consult-ripgrep consult-git-grep consult-grep consult-man
+   consult-bookmark consult-recent-file consult-xref
+   consult-source-bookmark consult-source-file-register
+   consult-source-recent-file consult-source-project-recent-file
+   ;; :preview-key "M-."
+   :preview-key '(:debounce 0.4 any))
+
+  (add-hook 'consult-after-jump-hook (lambda ()
+				       (pulsar-recenter-top)
+				       (pulsar-reveal-entry)))
+
+  ;; Optionally configure the narrowing key.
+  ;; Both < and C-+ work reasonably well.
+  (setq consult-narrow-key "<"))
+
+;;;;;;;;;;;;;;;;;;;;;
+;; Code Completion ;;
+;;;;;;;;;;;;;;;;;;;;;
+
+(use-package corfu
+  :bind (:map corfu-map ("<tab>" . corfu-complete))
+  :custom
+  (tab-always-indent 'complete)
+  (corfu-preview-current nil)
+  (corfu-min-width 20)
+  (corfu-popupinfo-delay '(1.25 . 0.5))
+  :config
+  (with-eval-after-load 'savehist
+    (corfu-history-mode 1)
+    (add-to-list 'savehist-additional-variables 'corfu-history))
+  :init
+  (global-corfu-mode)
+  (corfu-popupinfo-mode 1))
+
+;; Add extensions
+(use-package cape
+  :bind ("C-c p" . cape-prefix-map)
+  :init
+  (add-hook 'completion-at-point-functions #'cape-dabbrev)
+  (add-hook 'completion-at-point-functions #'cape-file)
+  (add-hook 'completion-at-point-functions #'cape-elisp-block))
+
 ;;;;;;;;;;;;;;;;;;
 ;; Text Editing ;;
 ;;;;;;;;;;;;;;;;;;
@@ -283,48 +598,158 @@
               (alist-get 'whole-line-or-region-delete-region
                          embark-around-action-hooks))))
 
+
+
 ;;;;;;;;;;;;;
 ;; Theming ;;
 ;;;;;;;;;;;;;
 
+;;;; Modus Themes -- Base theme functionality used by ef-themes, also provides the modus operandi
+;;;; and modus vivendi themes.
+
+(use-package modus-themes
+  :demand t)
+
+;;;; EF Themes -- More colorful themes that modify the modus themes.
+
+(use-package ef-themes
+  :demand t
+  :init
+  (ef-themes-take-over-modus-themes-mode 1)
+  :config
+  (setq modus-themes-variable-pitch-ui t
+        modus-themes-mixed-fonts t
+        modus-themes-bold-constructs t
+        modus-themes-italic-constructs t))
+
+;;;; Theme Buffet -- Switch themes randomly based on the time of day.
+
+(use-package theme-buffet
+  :after (modus-themes ef-themes)
+  :functions
+  calendar-current-time-zone
+  theme-buffet-timer-hours
+  :bind
+  (("<f5>" . theme-buffet-a-la-carte)
+   ("C-<f5>" . theme-buffet-order-other-period))
+  :init
+  (setq theme-buffet-menu 'end-user)
+  (add-hook 'emacs-startup-hook #'theme-buffet-a-la-carte)
+  :config
+  (setq theme-buffet-end-user
+        '(:night     ; Active between 00:00 and 04:00.
+          (ef-trio-dark ef-winter ef-cherie)
+          :twilight  ; Active between 04:00 and 08:00.
+	  (ef-dream ef-melissa-dark ef-owl)
+          :morning   ; Active between 08:00 and 12:00.
+          (ef-trio-light ef-kassio ef-day)   
+          :day       ; Active between 12:00 and 16:00.
+          (ef-trio-light ef-kassio ef-day)            
+          :afternoon ; Active between 16:00 and 20:00.
+          (ef-summer ef-orange ef-melissa-light)  
+          :evening   ; Active between 20:00 and 00:00.
+          (ef-trio-dark ef-winter ef-cherie)))
+
+  (theme-buffet-end-user)
+  (theme-buffet-timer-hours 1)
+  (theme-buffet-a-la-carte))
+
+;;;; Spacious Padding -- Enable extra spacing around modelines and windows.
+
+(use-package spacious-padding
+  :demand t
+  :bind
+  (("<f8>" . spacious-padding-mode))
+  :config
+  ;; These are the default values, but I keep them here for visibility.
+  ;; Also check `spacious-padding-subtle-frame-lines'.
+  (setq spacious-padding-widths
+	'(:internal-border-width 15
+          :header-line-width 4
+          :mode-line-width 6
+          :tab-width 4
+          :right-divider-width 15
+          :scroll-bar-width 12
+	  :left-fringe-width 20
+	  :right-fringe-width 20))
+  
+  (setq spacious-padding-subtle-frame-lines
+        '( :mode-line-active spacious-padding-line-active
+           :mode-line-inactive spacious-padding-line-inactive
+           :header-line-active spacious-padding-line-active
+           :header-line-inactive spacious-padding-line-inactive))
+
+  (spacious-padding-mode 1))
+
+;;;; Lin -- `hl-line-mode' styling.
+
+(use-package lin
+  :config
+  (setopt lin-face 'lin-magenta)
+  (lin-global-mode 1))
+
+;;;; Pulsar -- animations for selections, marking, etc.
+
+(use-package pulsar
+  :bind
+  (:map global-map
+    ("C-x l" . pulsar-pulse-line)                  ; overrides `count-lines-page'
+    ("C-x L" . pulsar-highlight-permanently-dwim)) ; or use `pulsar-highlight-temporarily-dwim'
+  :config
+  (setq pulsar-delay 0.055)
+  (setq pulsar-iterations 5)
+  (setq pulsar-face 'pulsar-green)
+  (setq pulsar-region-face 'pulsar-yellow)
+  (setq pulsar-highlight-face 'pulsar-magenta)
+
+  (defun timplication/pulsar-mark-error ()
+    (pulsar-pulse-line-red)
+    (pulsar-recenter-top)
+    (pulsar-reveal-entry))
+
+  (add-hook 'next-error-hook #'timplication/pulsar-mark-error)
+  (add-hook 'minibuffer-setup-hook #'timplication/pulsar-mark-error)
+  (pulsar-global-mode 1))
+
+;;;; Nerd Icons -- Embed the Nerd Font icons (e.g., for filetypes) in various aspects of the editor.
+
+(use-package nerd-icons
+  :config
+  ;; Set up a battery indicator on laptops.
+  (when (timplication/portable-device-p)
+    (setq battery-mode-line-format
+          (cond
+           ((eq battery-status-function #'battery-linux-proc-acpi)
+	    (format "%s %s" (nerd-icons-mdicon "nf-md-battery") "%b%p%%, %d°C "))
+	   (battery-status-function
+	    (format "%s %s" (nerd-icons-mdicon "nf-md-battery") "%b%p%% "))))
+
+    (display-battery-mode 1)))
+
+(use-package nerd-icons-completion
+  :after marginalia
+  :config
+  (add-hook 'marginalia-mode-hook
+	    #'nerd-icons-completion-marginalia-setup))
+
+(use-package nerd-icons-corfu
+  :after corfu
+  :config
+  (add-to-list 'corfu-margin-formatters #'nerd-icons-corfu-formatter))
+
+(use-package nerd-icons-dired
+  :hook
+  (dired-mode . nerd-icons-dired-mode))
+
+;;;; Tim Modeline -- Custom minimalist modeline.
+
 (use-package tim-modeline
   :after (nerd-icons modus-themes ef-themes)
-  :straight (tim-modeline :local-repo "~/.emacs.d/local-packages/tim-modeline/" :type nil)
-  :demand t
+  :straight (tim-modeline :local-repo "~/.emacs.d/local-packages/tim-modeline" :type nil)
   :config
-  (tim-modeline-setup)
-  
-  (defun tim-modeline-set-faces ()
-    (modus-themes-with-colors
-      (custom-set-faces
-       `(tim-modeline-indicator-red ((,c :inherit bold :foreground ,red)))
-       `(tim-modeline-indicator-green ((,c :inherit bold :foreground ,green)))
-       `(tim-modeline-indicator-yellow ((,c :inherit bold :foreground ,yellow)))
-       `(tim-modeline-indicator-blue ((,c :inherit bold :foreground ,blue)))
-       `(tim-modeline-indicator-magenta ((,c :inherit bold :foreground ,magenta)))
-       `(tim-modeline-indicator-cyan ((,c :inherit bold :foreground ,cyan)))
-       `(tim-modeline-indicator-red-bg
-         ((,c :inherit (bold tim-modeline-indicator-button)
-              :background ,bg-red-intense :foreground ,fg-main)))
-       `(tim-modeline-indicator-green-bg
-         ((,c :inherit (bold tim-modeline-indicator-button)
-              :background ,bg-green-intense :foreground ,fg-main)))
-       `(tim-modeline-indicator-yellow-bg
-         ((,c :inherit (bold tim-modeline-indicator-button)
-              :background ,bg-yellow-intense :foreground ,fg-main)))
-       `(tim-modeline-indicator-blue-bg
-         ((,c :inherit (bold tim-modeline-indicator-button)
-              :background ,bg-blue-intense :foreground ,fg-main)))
-       `(tim-modeline-indicator-magenta-bg
-         ((,c :inherit (bold tim-modeline-indicator-button)
-              :background ,bg-magenta-intense :foreground ,fg-main)))
-       `(tim-modeline-indicator-cyan-bg
-         ((,c :inherit (bold tim-modeline-indicator-button)
-              :background ,bg-cyan-intense :foreground ,fg-main))))))
-  
-  (add-hook 'modus-themes-after-load-theme-hook #'tim-modeline-set-faces)
-  
-  (tim-modeline-set-faces))
+  (tim-modeline-setup))
+
+;;;; Fontaine -- Font configuration presets.
 
 (use-package fontaine
   :after (modus-themes ef-themes)
@@ -450,103 +875,7 @@
   (add-hook 'modus-themes-after-load-theme-hook (lambda () (fontaine-mode 1)))
   (add-hook 'text-mode-hook #'timplication/enable-variable-pitch))
 
-(use-package modus-themes
-  :demand t)
-
-(use-package ef-themes
-  :demand t
-  :init
-  (ef-themes-take-over-modus-themes-mode 1)
-  :config
-  (setq modus-themes-variable-pitch-ui t
-        modus-themes-mixed-fonts t
-        modus-themes-bold-constructs t
-        modus-themes-italic-constructs t))
-
-(use-package theme-buffet
-  :after (modus-themes ef-themes)
-  :functions
-  calendar-current-time-zone
-  theme-buffet-timer-hours
-  :bind
-  (("<f5>" . theme-buffet-a-la-carte)
-   ("C-<f5>" . theme-buffet-order-other-period))
-  :init
-  (setq theme-buffet-menu 'end-user)
-  (add-hook 'emacs-startup-hook #'theme-buffet-a-la-carte)
-  :config
-  (setq theme-buffet-end-user
-        '(:night     ; Active between 00:00 and 04:00.
-          (ef-trio-dark ef-winter ef-cherie)
-          :twilight  ; Active between 04:00 and 08:00.
-	  (ef-dream ef-melissa-dark ef-owl)
-          :morning   ; Active between 08:00 and 12:00.
-          (ef-trio-light ef-kassio ef-day)   
-          :day       ; Active between 12:00 and 16:00.
-          (ef-trio-light ef-kassio ef-day)            
-          :afternoon ; Active between 16:00 and 20:00.
-          (ef-summer ef-orange ef-melissa-light)  
-          :evening   ; Active between 20:00 and 00:00.
-          (ef-trio-dark ef-winter ef-cherie)))
-
-  (theme-buffet-end-user)
-  (theme-buffet-timer-hours 1)
-  (theme-buffet-a-la-carte))
-
-(use-package spacious-padding
-  :ensure t
-  :config
-  ;; These are the default values, but I keep them here for visibility.
-  ;; Also check `spacious-padding-subtle-frame-lines'.
-  (setq spacious-padding-widths
-	'(:internal-border-width 15
-          :header-line-width 4
-          :mode-line-width 6
-          :tab-width 4
-          :right-divider-width 15
-          :scroll-bar-width 12
-	  :left-fringe-width 20
-	  :right-fringe-width 20))
-  
-  (setq spacious-padding-subtle-frame-lines
-        '( :mode-line-active spacious-padding-line-active
-           :mode-line-inactive spacious-padding-line-inactive
-           :header-line-active spacious-padding-line-active
-           :header-line-inactive spacious-padding-line-inactive))
-
-  (spacious-padding-mode 1)
-
-  ;; Set a key binding if you need to toggle spacious padding.
-  (define-key global-map (kbd "<f8>") #'spacious-padding-mode))
-
-(use-package lin
-  :config
-  (setopt lin-face 'lin-magenta)
-  (lin-global-mode 1)
-  (when (string= (getenv "DESKTOP_SESSION") "gnome")
-    (lin-gnome-accent-color-mode 1)))
-
-(use-package pulsar
-  :init
-  (pulsar-global-mode 1)
-  :bind
-  (:map global-map
-    ("C-x l" . pulsar-pulse-line) ; overrides `count-lines-page'
-    ("C-x L" . pulsar-highlight-permanently-dwim)) ; or use `pulsar-highlight-temporarily-dwim'
-  :config
-  (setq pulsar-delay 0.055)
-  (setq pulsar-iterations 5)
-  (setq pulsar-face 'pulsar-green)
-  (setq pulsar-region-face 'pulsar-yellow)
-  (setq pulsar-highlight-face 'pulsar-magenta)
-
-  (defun timplication/pulsar-mark-error ()
-    (pulsar-pulse-line-red)
-    (pulsar-recenter-top)
-    (pulsar-reveal-entry))
-
-  (add-hook 'next-error-hook #'timplication/pulsar-mark-error)
-  (add-hook 'minibuffer-setup-hook #'timplication/pulsar-mark-error))
+;;;; Cursory --- Make changes to the appearance of the point.
 
 (use-package cursory
   :demand t
@@ -591,276 +920,5 @@
   
     ;; Persist configurations between Emacs sessions.  Also apply the
     ;; :cursor-color again when swithcing to another theme.
-    (cursory-mode 1)
+  (cursory-mode 1))
 
-    ;; We have to use the "point" mnemonic, because C-c c is often the
-    ;; suggested binding for `org-capture' and is the one I use as well.
-    (define-key global-map (kbd "C-c p") #'cursory-set-preset))
-
-(use-package nerd-icons
-  :config
-  ;; Set up a battery indicator on laptops.
-  (when (timplication/portable-device-p)
-    (setq battery-mode-line-format
-          (cond
-           ((eq battery-status-function #'battery-linux-proc-acpi)
-	    (format "%s %s" (nerd-icons-mdicon "nf-md-battery") "%b%p%%, %d°C "))
-	   (battery-status-function
-	    (format "%s %s" (nerd-icons-mdicon "nf-md-battery") "%b%p%% "))))
-
-    (display-battery-mode 1)))
-
-(use-package nerd-icons-completion
-  :after marginalia
-  :config
-  (add-hook 'marginalia-mode-hook
-	    #'nerd-icons-completion-marginalia-setup))
-
-(use-package nerd-icons-corfu
-  :after corfu
-  :config
-  (add-to-list 'corfu-margin-formatters #'nerd-icons-corfu-formatter))
-
-(use-package nerd-icons-dired
-  :hook
-  (dired-mode . nerd-icons-dired-mode))
-
-;;;;;;;;;;;;;;;;;;;;;;;;;
-;; Syntax Highlighting ;;
-;;;;;;;;;;;;;;;;;;;;;;;;;
-
-(use-package treesit-auto
-  :custom
-  (treesit-auto-install 'prompt)
-  :config
-  (treesit-auto-add-to-auto-mode-alist 'all)
-  (global-treesit-auto-mode))
-
-;;;;;;;;;;;;;;;;;;;;;;;;
-;; Terminal Emulation ;;
-;;;;;;;;;;;;;;;;;;;;;;;;
-
-(use-package vterm
-  :config
-  (setq vterm-clear-scrollback-when-clearing t)
-  (setq vterm-kill-buffer-on-exit t)
-  (setq vterm-max-scrollback 50000)
-  :bind
-  (("<f1>" . vterm-other-window)
-   ("C-<f1>" . vterm)))
-
-
-;;;;;;;;;;;;;;;;;;;;;
-;; Version Control ;;
-;;;;;;;;;;;;;;;;;;;;;
-
-(use-package magit)
-
-;;;;;;;;;;;;;;;;;;;;;;;;;;;
-;; Minibuffer Completion ;;
-;;;;;;;;;;;;;;;;;;;;;;;;;;;
-
-(use-package vertico
-  :init
-  (vertico-mode)
-  (vertico-multiform-mode)
-  (setq vertico-multiform-categories
-        '((embark-keybinding grid))))
-
-(use-package savehist
-  :init
-  (savehist-mode))
-
-(use-package orderless
-  :custom
-  (completion-styles '(orderless basic))
-  (completion-category-overrides nil)
-  (completion-pcm-leading-wildcard t)
-  (completion-category-defaults nil))
-  
-(use-package marginalia
-  :init (marginalia-mode))
-
-(use-package embark
-  :bind
-  (("C-." . embark-act)         ;; pick some comfortable binding
-   ("M-." . embark-dwim)        ;; good alternative: M-.
-   ("C-h B" . embark-bindings))
-
-  :init
-  (setq prefix-help-command #'embark-prefix-help-command)
-
-  :config
-  (setq embark-indicators
-      '(embark-minimal-indicator  ; default is embark-mixed-indicator
-        embark-highlight-indicator
-        embark-isearch-highlight-indicator))
-  
-  (add-to-list 'display-buffer-alist
-               '("\\`\\*Embark Collect \\(Live\\|Completions\\)\\*"
-                 nil
-                 (window-parameters (mode-line-format . none)))))
-
-(use-package embark-consult
-  :after (embark consult))
-
-;; Consult configuration based on the example configuration
-;; provided in <https://github.com/minad/consult>
-(use-package consult
-  ;; Replace bindings. Lazily loaded by `use-package'.
-  :bind (;; C-c bindings in `mode-specific-map'
-         ("C-c M-x" . consult-mode-command)
-         ("C-c h" . consult-history)
-         ("C-c k" . consult-kmacro)
-         ("C-c m" . consult-man)
-         ("C-c i" . consult-info)
-         ([remap Info-search] . consult-info)
-         ;; C-x bindings in `ctl-x-map'
-         ("C-x M-:" . consult-complex-command)     ;; orig. repeat-complex-command
-         ("C-x b" . consult-buffer)                ;; orig. switch-to-buffer
-         ("C-x 4 b" . consult-buffer-other-window) ;; orig. switch-to-buffer-other-window
-         ("C-x 5 b" . consult-buffer-other-frame)  ;; orig. switch-to-buffer-other-frame
-         ("C-x t b" . consult-buffer-other-tab)    ;; orig. switch-to-buffer-other-tab
-         ("C-x r b" . consult-bookmark)            ;; orig. bookmark-jump
-         ("C-x p b" . consult-project-buffer)      ;; orig. project-switch-to-buffer
-         ;; Custom M-# bindings for fast register access
-         ("M-#" . consult-register-load)
-         ("M-'" . consult-register-store)          ;; orig. abbrev-prefix-mark (unrelated)
-         ("C-M-#" . consult-register)
-         ;; Other custom bindings
-         ("M-y" . consult-yank-pop)                ;; orig. yank-pop
-         ;; M-g bindings in `goto-map'
-         ("M-g e" . consult-compile-error)
-         ("M-g r" . consult-grep-match)
-         ("M-g f" . consult-flymake)               ;; Alternative: consult-flycheck
-         ("M-g g" . consult-goto-line)             ;; orig. goto-line
-         ("M-g M-g" . consult-goto-line)           ;; orig. goto-line
-         ("M-g o" . consult-outline)               ;; Alternative: consult-org-heading
-         ("M-g m" . consult-mark)
-         ("M-g k" . consult-global-mark)
-         ("M-g i" . consult-imenu)
-         ("M-g I" . consult-imenu-multi)
-         ;; M-s bindings in `search-map'
-         ("M-s d" . consult-find)                  ;; Alternative: consult-fd
-         ("M-s c" . consult-locate)
-         ("M-s g" . consult-grep)
-         ("M-s G" . consult-git-grep)
-         ("M-s r" . consult-ripgrep)
-         ("M-s l" . consult-line)
-         ("M-s L" . consult-line-multi)
-         ("M-s k" . consult-keep-lines)
-         ("M-s u" . consult-focus-lines)
-         ;; Isearch integration
-         ("M-s e" . consult-isearch-history)
-         :map isearch-mode-map
-         ("M-e" . consult-isearch-history)         ;; orig. isearch-edit-string
-         ("M-s e" . consult-isearch-history)       ;; orig. isearch-edit-string
-         ("M-s l" . consult-line)                  ;; needed by consult-line to detect isearch
-         ("M-s L" . consult-line-multi)            ;; needed by consult-line to detect isearch
-         ;; Minibuffer history
-         :map minibuffer-local-map
-         ("M-s" . consult-history)                 ;; orig. next-matching-history-element
-         ("M-r" . consult-history))                 ;; orig. previous-matching-history-element
-
-
-  :init
-  ;; Tweak the register preview for `consult-register-load',
-  ;; `consult-register-store' and the built-in commands.  This improves the
-  ;; register formatting, adds thin separator lines, register sorting and hides
-  ;; the window mode line.
-  (advice-add #'register-preview :override #'consult-register-window)
-  (setq register-preview-delay 0.5)
-
-  ;; Use Consult to select xref locations with preview
-  (setq xref-show-xrefs-function #'consult-xref
-        xref-show-definitions-function #'consult-xref)
-
-  :config
-  (consult-customize
-   consult-theme :preview-key '(:debounce 0.2 any)
-   consult-ripgrep consult-git-grep consult-grep consult-man
-   consult-bookmark consult-recent-file consult-xref
-   consult-source-bookmark consult-source-file-register
-   consult-source-recent-file consult-source-project-recent-file
-   ;; :preview-key "M-."
-   :preview-key '(:debounce 0.4 any))
-
-  (add-hook 'consult-after-jump-hook (lambda ()
-				       (pulsar-recenter-top)
-				       (pulsar-reveal-entry)))
-
-  ;; Optionally configure the narrowing key.
-  ;; Both < and C-+ work reasonably well.
-  (setq consult-narrow-key "<"))
-
-;;;;;;;;;;;;;;;;;;;;;
-;; Code Completion ;;
-;;;;;;;;;;;;;;;;;;;;;
-
-(use-package corfu
-  :bind (:map corfu-map ("<tab>" . corfu-complete))
-  :custom
-  (tab-always-indent 'complete)
-  (corfu-preview-current nil)
-  (corfu-min-width 20)
-  (corfu-popupinfo-delay '(1.25 . 0.5))
-  :config
-  (with-eval-after-load 'savehist
-    (corfu-history-mode 1)
-    (add-to-list 'savehist-additional-variables 'corfu-history))
-  :init
-  (global-corfu-mode)
-  (corfu-popupinfo-mode 1))
-
-;; Add extensions
-(use-package cape
-  :bind ("C-c p" . cape-prefix-map)
-  :init
-  (add-hook 'completion-at-point-functions #'cape-dabbrev)
-  (add-hook 'completion-at-point-functions #'cape-file)
-  (add-hook 'completion-at-point-functions #'cape-elisp-block))
-
-
-;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-;; Filetype Specific - PDF ;;
-;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-
-(use-package pdf-tools
-  :config
-  (pdf-loader-install)
-  (add-hook 'pdf-view-mode-hook (lambda ()
-				  (pdf-view-roll-minor-mode)
-				  (pdf-view-themed-minor-mode))))
-
-;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-;; Filetype Specific - LaTeX ;;
-;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-
-(use-package auctex
-  :custom
-  ;; Parse the file when saving it
-  (TeX-auto-save t)
-  ;; Parse the file when first loading it.
-  (TeX-parse-self t)
-  ;; Always convert tabs to spaces automatically.
-  (TeX-auto-untabify t)
-  ;; Set the default viewer to use the `pdf-tools` viewer inside Emacs.
-  (TeX-view-program-selection '((output-pdf "PDF Tools")))
-  (TeX-view-program-list '(("PDF Tools" TeX-pdf-tools-sync-view)))
-  ;; enable support for forward an inverse search with SyncTeX
-  (TeX-source-correlate-mode t)
-  (TeX-source-correlate-method 'synctex)
-  ;; always start the viewer process automatically, do not ask
-  (TeX-source-correlate-start-server t)
-  ;; Always use the XeTeX-engine.
-  (TeX-engine 'xetex)
-  ;; The built PDF files always get dumped into a "build/" folder.
-  (TeX-output-dir "build")
-  ;; The main entry point file is always called "main" in my projects.
-  (TeX-master nil)
-  :config
-  ;; enable dutch spell checking in Emacs when using `\usepackage[dutch]{babel}'
-  ;;(add-hook 'TeX-language-nl-hook (lambda () (ispell-change-dictionary "dutch")))
-  ;; automatically refresh the viewer after compilation finishes.
-  (add-hook 'TeX-after-compilation-finished-functions #'TeX-revert-document-buffer))
- 
