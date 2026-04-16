@@ -50,9 +50,9 @@
   (let ((chassis (string-trim (shell-command-to-string "hostnamectl chassis"))))
     (or (eq system-type 'darwin)
         (string= chassis "laptop")
-	(string= chassis "convertible")
-	(string= chassis "tablet")
-	(string= chassis "handset"))))
+	    (string= chassis "convertible")
+	    (string= chassis "tablet")
+	    (string= chassis "handset"))))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; General Emacs Settings ;;
@@ -147,8 +147,8 @@
 
   ;; Indent with spaces instead of tabs
   (setq-default indent-tabs-mode nil
-		tab-width 4
-		fill-column 100)
+		        tab-width 4
+		        fill-column 100)
 
   ;; set fill column width
   (setq-default fill-column 100)
@@ -156,15 +156,11 @@
   ;; Disable the bell sound on things like `C-g' when
   ;; cancelling a command.
   (setq ring-bell-function 'ignore)
-  
-  ;; Disable backup files.
-  (setq make-backup-files nil)
-  (setq create-lockfiles nil)
 
   ;; Change the resizing behavior to act
   ;; more like a graphical application would act.
   (setq frame-resize-pixelwise t
-	frame-inhibit-implied-resize 'force)
+	    frame-inhibit-implied-resize 'force)
 
   ;; Change the title of the frame
   ;; to display the buffer title only.
@@ -173,6 +169,12 @@
   ;; Text Mode Configuration
   (add-to-list 'auto-mode-alist '("\\`\\(README\\|CHANGELOG\\|COPYING\\|LICENSE\\)\\'" . text-mode))
 
+  (add-hook 'prog-mode-hook #'electric-indent-local-mode)
+  (with-eval-after-load 'electric
+    (electric-pair-mode -1)
+    (electric-quote-mode -1)
+    (electric-indent-mode -1))
+  
   (add-hook 'text-mode-hook #'auto-fill-mode)
   (add-hook 'emacs-lisp-mode-hook (lambda () (setq-local sentence-end-double-space t)))
 
@@ -183,8 +185,13 @@
     (setq use-hard-newlines nil)
     (setq adaptive-fill-mode t))
 
-
   :custom
+  ;; Disable backup files.
+  (setq make-backup-files nil)
+  (setq backup-inhibited nil)
+  (setq create-lockfiles nil)
+  (auto-save-mode -1)
+  
   ;; Enable context menu.
   (context-menu-mode t)
 
@@ -280,12 +287,399 @@
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
 (use-package markdown-mode
-  :after (embark)
   :mode ("\\.\\(?:md\\|markdown\\|mkd\\|mdown\\|mkdn\\|mdwn\\)\\'" . markdown-mode)
   :config
   (setq markdown-list-indent-width 2)
- 
   (setq markdown-fontify-code-blocks-natively t))
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;; Filetype Specific - Org ;;
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+
+(use-package org
+  :ensure nil   ;; org-mode is built-in
+  :straight nil ;; org-mode is built-in
+  :demand t
+  :bind (:map global-map
+         ("C-c A" . org-agenda)
+         ("C-c c" . org-capture)     
+         :map org-mode-map
+         ("C-c C-a" . nil) ;; orig. org-attach
+         ;; ("C-c C-" . org-attach)
+         ("C-a" . nil)
+         ("C-d" . nil)
+         ("C-S-d" . nil)
+         ("C-'" . nil)
+         ("C-," . nil)
+         ("M-;" . nil)
+         ("<C-return>" . nil)
+         ("<C-S-return>" . nil)
+         ("C-M-S-<right>" . nil)
+         ("C-M-S-<left>" . nil)
+         ("C-c ;" . nil)
+         ("C-c C-x C-c" . nil)
+         ("C-c M-l" . org-insert-last-stored-link)
+         ("C-c C-M-l" . org-toggle-link-display)
+         ("M-." . org-edit-special)
+         :map org-src-mode-map
+         ("M-," . org-edit-src-exit)
+         :map narrow-map
+         ("b" . org-narrow-to-block)
+         ("e" . org-narrow-to-element)
+         ("s" . org-narrow-to-subtree))
+  :config
+  (defun tim-org-open-main-agenda ()
+    "Call org agenda with the main custom configuration."
+    (interactive)
+    (org-agenda nil "A"))
+
+  (keymap-global-set "C-c C-a" #'tim-org-open-main-agenda)
+  
+           
+  (setq org-directory (expand-file-name "~/Git/org/"))
+  (setq org-imenu-depth 7)
+
+  (add-to-list 'safe-local-variable-values '(org-hide-leading-stars . t))
+  (add-to-list 'safe-local-variable-values '(org-hide-macro-markers . t))
+
+  ;; capture templates
+  (setq org-capture-templates
+        (let* ((without-time (concat ":PROPERTIES:\n"
+                                     ":CAPTURED: %U\n"
+                                     ":CUSTOM_ID: h:%(format-time-string \"%Y%m%dT%H%M%S\")\n"
+                                     ":END:\n\n"
+                                     "%a\n%?"))
+               (with-deadline-time (concat "DEADLINE: %^T\n"
+                                           ":PROPERTIES:\n"
+                                           ":CAPTURED: %U\n"
+                                           ":CUSTOM_ID: h:%(format-time-string \"%Y%m%dT%H%M%S\")\n"
+                                           ":END:\n\n"
+                                           "%a%?"))
+               (with-scheduled-time (concat "SCHEDULED: %^T\n"
+                                           ":PROPERTIES:\n"
+                                           ":CAPTURED: %U\n"
+                                           ":CUSTOM_ID: h:%(format-time-string \"%Y%m%dT%H%M%S\")\n"
+                                           ":END:\n\n"
+                                           "%a%?")))
+          `(("m" "Meeting" entry
+             (file+headline "tasks.org" "Meetings")
+             ,(concat "* TODO %^{Title} %^g\n" with-scheduled-time)
+             :empty-lines-after 1)
+            ("o" "Obligation" entry
+             (file+headline "tasks.org" "Obligations")
+             ,(concat "* TODO %^{Title} %^g\n" with-deadline-time)
+             :empty-lines-after 1)
+            ("b" "Backlog Task" entry
+             (file+headline "tasks.org" "Task Backlog")
+             ,(concat "* TODO %^{Title} %^g\n" without-time)
+             :empty-lines-after 1))))
+
+
+  
+  ;; calendar setup
+  ;; Belgian Holidays
+  (setq calendar-holidays
+        '((holiday-fixed 1 1 "New Year's Day")
+          (holiday-easter-etc 0 "Easter Sunday")
+          (holiday-easter-etc 1 "Easter Monday") ; 1 day after Easter
+          (holiday-fixed 5 1 "Labour Day")
+          (holiday-easter-etc 39 "Ascension Day") ; 40 days after Easter
+          (holiday-easter-etc 50 "Pentecost Monday") ; 7th Monday after Easter
+          (holiday-fixed 7 21 "Belgian Independence Day")
+          (holiday-fixed 8 15 "Assumption Day")
+          (holiday-fixed 11 1 "All Saints' Day")
+          (holiday-fixed 11 11 "Armistice Day")
+          (holiday-fixed 12 25 "Christmas Day")))
+  (setq calendar-mark-diary-entries-flag nil)
+  (setq calendar-mark-holidays-flag t)
+  (setq calendar-mode-line-format nil)
+  (setq calendar-time-display-form
+        '( 24-hours ":" minutes
+           (when time-zone (format "(%s)" time-zone))))
+  (setq calendar-week-start-day 1)
+  (setq calendar-date-style 'iso)
+  (setq calendar-time-zone-style 'numeric)
+  ;; end calendar setup
+    
+  (setq org-M-RET-may-split-line '((default . nil)))
+  (setq org-insert-heading-respect-content t)
+  (setq org-special-ctrl-a/e nil)
+  (setq org-special-ctrl-k nil)
+  (setq org-cycle-separator-lines 0)
+  (setq org-use-sub-superscripts '{})
+  (setq org-highlight-latex-and-related nil) 
+  (setq org-hide-emphasis-markers nil)
+  (setq org-hide-macro-markers nil)
+  (setq org-hide-leading-stars nil)
+  (setq org-ellipsis " ⯆")
+  (setq org-fold-catch-invisible-edits 'show)
+  (setq org-yank-folded-subtrees nil)
+  (setq org-read-date-prefer-future 'time)
+  (setq org-return-follows-link t)
+  (setq org-loop-over-headlines-in-active-region 'start-level)
+  (setq org-fontify-quote-and-verse-blocks t)
+  (setq org-fontify-whole-block-delimiter-line t)
+  (setq org-track-ordered-property-with-tag t)
+  (setq org-highest-priority ?A)
+  (setq org-lowest-priority ?C)
+  (setq org-default-priority ?A)
+  (setq org-priority-faces nil)
+
+  (add-hook 'org-mode-hook #'org-indent-mode)
+  (setq org-indent-mode-turns-on-hiding-stars nil)
+  (setq org-adapt-indentation nil)
+  (setq org-indent-indentation-per-level 4)
+  (setq org-startup-folded 'content)
+
+  ;; refiling
+  (setq org-refile-targets
+        '((org-agenda-files . (:maxlevel . 2))
+          (nil . (:maxlevel . 2))))
+  (setq org-refile-use-outline-path nil)
+  (setq org-refile-allow-creating-parent-nodes 'confirm)
+  (setq org-refile-use-cache t)
+  (setq org-reverse-note-order nil)
+
+  ;; tagging
+  (setq org-tag-alist nil)
+  (setq org-auto-align-tags nil)
+  (setq org-tags-column 0)
+
+  (defface tim-org-tag-meeting
+    '((default :inherit unspecified :weight regular :slant normal)
+      (((class color) (min-colors 88) (background light))
+       :foreground "#004476")
+      (((class color) (min-colors 88) (background dark))
+       :foreground "#c0d0ef")
+      (t :foreground "cyan"))
+    "Face for meeting Org tag.")
+
+  (defface tim-org-tag-obligation
+    '((default :inherit unspecified :weight regular :slant normal)
+      (((class color) (min-colors 88) (background light))
+       :foreground "#600f00")
+      (((class color) (min-colors 88) (background dark))
+       :foreground "#de7a66")
+      (t :foreground "red"))
+    "Face for obligation Org tag.")
+
+  (defface tim-org-tag-backlog
+    '((default :inherit unspecified :weight regular :slant normal)
+      (((class color) (min-colors 88) (background light))
+       :foreground "#603f00")
+      (((class color) (min-colors 88) (background dark))
+       :foreground "#deba66")
+      (t :foreground "yellow"))
+    "Face for backlog task Org tag.")
+
+  (setq org-tag-faces
+        '(("meeting" . tim-org-tag-meeting)
+          ("obligation" . tim-org-tag-obligation)
+          ("backlog" . tim-org-tag-backlog)))
+
+  (defface tim-org-todo-alternative
+    '((t :inherit (italic org-todo)))
+    "Face for alternative TODO-type Org keywords.")
+
+  (defface tim-org-done-alternative
+    '((t :inherit (italic org-done)))
+    "Face for alternative DONE-type Org keywords.")
+
+  (setq org-todo-keyword-faces
+        '(("MAYBE" . tim-org-todo-alternative)
+          ("CANCELLED" . tim-org-done-alternative)))
+
+  (setq org-use-fast-todo-selection 'expert)
+  (setq org-fontify-done-headline nil)
+  (setq org-fontify-todo-headline nil)
+  (setq org-fontify-whole-heading-line nil)
+  (setq org-enforce-todo-dependencies t)
+  (setq org-enforce-todo-checkbox-dependencies t)
+
+  ;; logging
+  (setq org-log-done 'time)
+  (setq org-log-into-drawer t)
+  (setq org-log-note-clock-out nil)
+  (setq org-log-redeadline 'time)
+  (setq org-log-reschedule 'time)
+
+  ;; links
+  (setq org-return-follows-link t)
+  (setq org-link-context-for-files t)
+  (setq org-link-keep-stored-after-insertion nil)
+  (setq org-id-link-to-org-use-id 'create-if-interactive-and-no-custom-id)
+
+  (setq org-todo-keywords
+        '((sequence "TODO(t)" "MAYBE(m)" "|" "CANCELLED(C@)" "DONE(d!)")))
+
+  ;; agenda
+
+  (defun tim-org-agenda-include-priority-no-timestamp ()
+    "Return nil if heading has a priority but no timestamp.
+Otherwise, return the buffer position from where the search should
+continue, per `org-agenda-skip-function'."
+    (let ((point (point)))
+      (if (and (eq (nth 3 (org-heading-components)) ?A)
+               (not (org-get-deadline-time point))
+               (not (org-get-scheduled-time point)))
+          nil
+        (line-beginning-position 2))))
+
+  (defvar tim-org-custom-daily-agenda
+    `((agenda "" ((org-agenda-overriding-header "Overdue\n")
+                  (org-agenda-time-grid nil)
+                  (org-agenda-start-on-weekday nil)
+                  (org-agenda-span 1)
+                  (org-agenda-show-all-dates nil)
+                  (org-scheduled-past-days 365)
+                  ;; Excludes today's scheduled items
+                  (org-scheduled-delay-days 1)
+                  (org-agenda-block-separator nil)
+                  (org-agenda-entry-types '(:scheduled))
+                  (org-agenda-skip-function '(org-agenda-skip-entry-if 'todo 'done))
+                  (org-agenda-skip-function '(org-agenda-skip-entry-if 'regexp "ROUTINE"))
+                  (org-agenda-day-face-function (lambda (date) 'org-agenda-date))
+                  (org-agenda-format-date "")))
+      (agenda "" ((org-agenda-overriding-header "\nToday\n")
+                  (org-agenda-span 1)
+                  (org-deadline-warning-days 0)
+                  (org-agenda-block-separator nil)
+                  (org-scheduled-past-days 0)
+                  (org-agenda-skip-function '(org-agenda-skip-entry-if 'regexp "ROUTINE"))
+                  ;; We don't need the `org-agenda-date-today'
+                  ;; highlight because that only has a practical
+                  ;; utility in multi-day views.
+                  (org-agenda-day-face-function (lambda (date) 'org-agenda-date))))
+                  ;;(org-agenda-format-date "")))
+      (agenda "" ((org-agenda-overriding-header "\nUpcoming (+3d)\n")
+                  (org-agenda-start-on-weekday nil)
+                  (org-agenda-start-day nil)
+                  (org-agenda-start-day "+1d")
+                  (org-agenda-span 3)
+                  (org-deadline-warning-days 0)
+                  (org-agenda-block-separator nil)
+                  (org-agenda-skip-function '(org-agenda-skip-entry-if 'todo 'done))))
+      (agenda "" ((org-agenda-overriding-header "\nUpcoming Deadlines (+14d)\n")
+                  (org-agenda-time-grid nil)
+                  (org-agenda-start-on-weekday nil)
+                  ;; We don't want to replicate the previous section's
+                  ;; three days, so we start counting from the day after.
+                  (org-agenda-start-day "+4d")
+                  (org-agenda-span 14)
+                  (org-agenda-show-all-dates nil)
+                  (org-deadline-warning-days 0)
+                  (org-agenda-block-separator nil)
+                  (org-agenda-entry-types '(:deadline))
+                  (org-agenda-skip-function '(org-agenda-skip-entry-if 'todo 'done))))
+      (tags-todo "*"
+                 ((org-agenda-overriding-header "\nAnytime\n")
+                  (org-agenda-skip-function #'tim-org-agenda-include-priority-no-timestamp)
+                  (org-agenda-block-separator nil)))))
+
+  (setq org-agenda-custom-commands
+        `(("A" "Daily agenda and top priority tasks"
+           ,tim-org-custom-daily-agenda
+           ((org-agenda-fontify-priorities nil)
+            (org-agenda-dim-blocked-tasks nil)))))
+
+                  
+  (setq org-default-notes-file (make-temp-file "emacs-org-notes-")) ; send it to oblivion
+  (setq org-agenda-files (list org-directory))
+  (setq org-agenda-span 'week)
+  (setq org-agenda-start-on-weekday 1)  ; Monday
+  (setq org-agenda-confirm-kill t)
+  (setq org-agenda-show-all-dates t)
+  (setq org-agenda-show-outline-path nil)
+  (setq org-agenda-window-setup 'current-window)
+  (setq org-agenda-skip-comment-trees t)
+  (setq org-agenda-menu-show-matcher t)
+  (setq org-agenda-menu-two-columns nil)
+  (setq org-agenda-sticky nil)
+  (setq org-agenda-custom-commands-contexts nil)
+  (setq org-agenda-max-entries nil)
+  (setq org-agenda-max-todos nil)
+  (setq org-agenda-max-tags nil)
+  (setq org-agenda-max-effort nil)
+
+  ;; agenda view
+  (setq org-agenda-prefix-format "%c	 %t %s")
+
+  (setq org-agenda-breadcrumbs-separator "->")
+  (setq org-agenda-todo-keyword-format "%-1s")
+  (setq org-agenda-fontify-priorities 'cookies)
+  (setq org-agenda-category-icon-alist nil)
+  (setq org-agenda-remove-times-when-in-prefix nil)
+  (setq org-agenda-remove-timeranges-from-blocks nil)
+  (setq org-agenda-compact-blocks nil)
+  (setq org-agenda-block-separator ?—)
+
+  (setq org-agenda-start-with-follow-mode nil)
+  (setq org-agenda-follow-indirect t)
+  (setq org-agenda-dim-blocked-tasks t)
+  (setq org-agenda-todo-list-sublevels t)
+  (setq org-agenda-persistent-filter nil)
+  (setq org-agenda-restriction-lock-highlight-subtree t)
+
+  (setq org-agenda-include-deadlines t)
+  (setq org-deadline-warning-days 0)
+  (setq org-agenda-skip-scheduled-if-done nil)
+  (setq org-agenda-skip-scheduled-if-deadline-is-shown t)
+  (setq org-agenda-skip-timestamp-if-deadline-is-shown t)
+  (setq org-agenda-skip-deadline-if-done nil)
+  (setq org-agenda-skip-deadline-prewarning-if-scheduled 1)
+  (setq org-agenda-skip-scheduled-delay-if-deadline nil)
+  (setq org-agenda-skip-additional-timestamps-same-entry nil)
+  (setq org-agenda-skip-timestamp-if-done nil)
+  (setq org-agenda-search-headline-for-time nil)
+  (setq org-scheduled-past-days 365)
+  (setq org-deadline-past-days 365)
+  (setq org-agenda-move-date-from-past-immediately-to-today t)
+  (setq org-agenda-show-future-repeats t)
+  (setq org-agenda-prefer-last-repeat nil)
+  (setq org-agenda-timerange-leaders
+        '("" "(%d/%d): "))
+  (setq org-agenda-scheduled-leaders
+        '("Scheduled: " "Sched.%2dx: "))
+  (setq org-agenda-inactive-leader "[")
+  (setq org-agenda-deadline-leaders
+        '("Deadline:  " "In %3d d.: " "%2d d. ago: "))
+  
+  ;; Time grid
+  (setq org-agenda-time-leading-zero t)
+  (setq org-agenda-timegrid-use-ampm nil)
+  (setq org-agenda-use-time-grid t)
+  (setq org-agenda-show-current-time-in-grid t)
+  (setq org-agenda-current-time-string (concat "Now " (make-string 70 ?.)))
+  (setq org-agenda-time-grid
+        '((daily today require-timed)
+          ( 0500 0600 0700 0800 0900 1000
+            1100 1200 1300 1400 1500 1600
+            1700 1800 1900 2000 2100 2200)
+          "" ""))
+  (setq org-agenda-default-appointment-duration nil)
+
+  (setq org-agenda-todo-ignore-with-date t)
+  (setq org-agenda-todo-ignore-timestamp t)
+  (setq org-agenda-todo-ignore-scheduled t)
+  (setq org-agenda-todo-ignore-deadlines t)
+  (setq org-agenda-todo-ignore-time-comparison-use-seconds t)
+  (setq org-agenda-tags-todo-honor-ignore-options nil)
+
+  (setq org-agenda-show-inherited-tags t)
+  (setq org-agenda-use-tag-inheritance
+        '(todo search agenda))
+  (setq org-agenda-hide-tags-regexp nil)
+  (setq org-agenda-remove-tags nil)
+  (setq org-agenda-tags-column 1)
+  
+  (defun tim-pulsar-show ()
+    (require 'pulsar)
+    (pulsar-recenter-center)
+    (pulsar-reveal-entry))
+  
+  (add-hook 'org-agenda-after-show-hook #'tim-pulsar-show)
+  (add-hook 'org-follow-link-hook #'tim-pulsar-show))
+  
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; Filetype Specific - PDF ;;
@@ -343,16 +737,15 @@
   (("<f1>" . vterm-other-window)
    ("C-<f1>" . vterm)))
 
-
 ;;;;;;;;;;;;;;;;;;;;;
 ;; Version Control ;;
 ;;;;;;;;;;;;;;;;;;;;;
 
 (use-package magit)
 
-;;;;;;;;;;;;;;;;;;;;;;;;;;;
-;; Minibuffer Completion ;;
-;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;;;;;;;;;;;;;;;;
+;; Completion ;;
+;;;;;;;;;;;;;;;;
 
 (use-package vertico
   :init
@@ -375,192 +768,67 @@
 (use-package marginalia
   :init (marginalia-mode))
 
+;; I currently only use this for `embark-prefix-help-command'
+;; That is, if you do `<prefix> C-h' a window with a
+;; vertico-muliform will pop up with the keybinds under that prefix.
+;; I intend to use this for more features when I have a better understanding
+;; of the kind of workflow I want to create with this package.
 (use-package embark
-  :after (markdown-mode)
-  :bind
-  (("C-." . embark-act)         ;; pick some comfortable binding
-   ("M-." . embark-dwim)        ;; good alternative: M-.
-   ("C-h B" . embark-bindings))
-
-  :init
-  (setq prefix-help-command #'embark-prefix-help-command)
-
+  :after (vertico)
+  :demand t
+  :bind (("C-." . embark-act)
+         ("M-." . embark-dwim))
   :config
   (setq embark-indicators
-        '(embark-minimal-indicator  ; default is embark-mixed-indicator
-          embark-highlight-indicator
-          embark-isearch-highlight-indicator))
-
-  ;;;; embark-markdown
-
-  (defun embark-markdown-next-list-item (args)
-    (markdown-next-list-item
-     (+ markdown-list-indent-width (current-indentation))))
-
-  (defun embark-markdown-prev-list-item (args)
-    (markdown-prev-list-item
-     (+ markdown-list-indent-width (current-indentation))))
-
-  (defun embark-markdown-down-list-item (args)
-    (markdown-next-list-item
-     (+ (* markdown-list-indent-width 2)
-        (current-indentation))))
-
-  (defun embark-markdown-up-list-item (args)
-    (markdown-prev-list-item
-     (- (current-indentation)
-        markdown-list-ident-width)))
-
-  (defun embark-markdown-demote-list-item (args)
-    (markdown-demote-list-item))
-
-  (defun embark-markdown-promote-list-item (args)
-    (markdown-promote-list-item))
-
-  (defun embark-markdown-move-list-item-up (args)
-    (markdown-move-list-item-up))
-
-  (defun embark-markdown-move-list-item-down (args)
-    (markdown-move-list-item-down))
+      '(embark-minimal-indicator  ; default is embark-mixed-indicator
+        embark-highlight-indicator
+        embark-isearch-highlight-indicator))
   
-  (defvar-keymap embark-markdown-plain-list-map
-    :doc "Embark action map for plain lists in markdown files."
-    :parent embark-general-map
-    "n" #'embark-markdown-next-list-item
-    "p" #'embark-markdown-prev-list-item
-    "d" #'embark-markdown-down-list-item
-    "u" #'embark-markdown-up-list-item
-    "C-d" #'embark-markdown-demote-list-item
-    "C-p" #'embark-markdown-promote-list-item
-    "C-t" #'embark-markdown-move-list-item-down
-    "C-u C-t" #'embark-markdown-move-list-item-up)
+  (setq prefix-help-command #'embark-prefix-help-command))
 
-  (dolist (cmd '(embark-markdown-next-list-item
-                 embark-markdown-prev-list-item
-                 embark-markdown-down-list-item
-                 embark-markdown-up-list-item))
-    (add-to-list 'embark-repeat-actions cmd))
-
-  ;; embark-target-finders: requires (TYPE TARGET START . END) format
-  ;; TYPE: symbol looked up in `embark-keymap-alist' to determine keybinds
-  ;; TARGET: string used for highlighting
-  ;; START: buffer position marking start of TARGET
-  ;; END: buffer position marking end of TARGET.
-  (defun embark-markdown-plain-list-item ()
-    "Target a markdown plain list item."
-    (let ((list-item (markdown-cur-list-item-bounds)))
-      (when list-item
-        (pcase-let ((`(,begin ,end ,indent ,nonlist-indent ,marker ,checkbox ,match)
-                     list-item))
-          `(md-plain-list-item ,(buffer-substring-no-properties (+ begin indent) end)
-                               ,begin . ,end)))))   
-
-  (add-to-list 'embark-target-finders 'embark-markdown-plain-list-item)
-
-  (add-to-list 'embark-keymap-alist '(md-plain-list-item . embark-markdown-plain-list-map))
-
-  (add-to-list 'display-buffer-alist
-               '("\\`\\*Embark Collect \\(Live\\|Completions\\)\\*"
-                 nil
-                 (window-parameters (mode-line-format . none)))))
-
-(use-package embark-consult
-  :after (embark consult))
-
-;; Consult configuration based on the example configuration
-;; provided in <https://github.com/minad/consult>
 (use-package consult
-  ;; Replace bindings. Lazily loaded by `use-package'.
-  :bind (;; C-c bindings in `mode-specific-map'
-         ("C-c M-x" . consult-mode-command)
-         ("C-c h" . consult-history)
-         ("C-c k" . consult-kmacro)
-         ("C-c m" . consult-man)
-         ("C-c i" . consult-info)
-         ([remap Info-search] . consult-info)
-         ;; C-x bindings in `ctl-x-map'
-         ("C-x M-:" . consult-complex-command)     ;; orig. repeat-complex-command
-         ("C-x b" . consult-buffer)                ;; orig. switch-to-buffer
-         ("C-x 4 b" . consult-buffer-other-window) ;; orig. switch-to-buffer-other-window
-         ("C-x 5 b" . consult-buffer-other-frame)  ;; orig. switch-to-buffer-other-frame
-         ("C-x t b" . consult-buffer-other-tab)    ;; orig. switch-to-buffer-other-tab
-         ("C-x r b" . consult-bookmark)            ;; orig. bookmark-jump
-         ("C-x p b" . consult-project-buffer)      ;; orig. project-switch-to-buffer
-         ;; Custom M-# bindings for fast register access
-         ("M-#" . consult-register-load)
-         ("M-'" . consult-register-store)          ;; orig. abbrev-prefix-mark (unrelated)
-         ("C-M-#" . consult-register)
-         ;; Other custom bindings
-         ("M-y" . consult-yank-pop)                ;; orig. yank-pop
-         ;; M-g bindings in `goto-map'
-         ("M-g e" . consult-compile-error)
-         ("M-g r" . consult-grep-match)
-         ("M-g f" . consult-flymake)               ;; Alternative: consult-flycheck
-         ("M-g g" . consult-goto-line)             ;; orig. goto-line
-         ("M-g M-g" . consult-goto-line)           ;; orig. goto-line
-         ("M-g o" . consult-outline)               ;; Alternative: consult-org-heading
-         ("M-g m" . consult-mark)
-         ("M-g k" . consult-global-mark)
-         ("M-g i" . consult-imenu)
-         ("M-g I" . consult-imenu-multi)
-         ;; M-s bindings in `search-map'
-         ("M-s d" . consult-find)                  ;; Alternative: consult-fd
-         ("M-s c" . consult-locate)
-         ("M-s g" . consult-grep)
-         ("M-s G" . consult-git-grep)
-         ("M-s r" . consult-ripgrep)
-         ("M-s l" . consult-line)
-         ("M-s L" . consult-line-multi)
-         ("M-s k" . consult-keep-lines)
-         ("M-s u" . consult-focus-lines)
-         ;; Isearch integration
-         ("M-s e" . consult-isearch-history)
+  :bind (;; Bindings in the `goto-map'
+         ("M-g M-g" . consult-goto-line) ;; orig. goto-line
+         ("M-g M-e" . consult-compile-error)
+         ("M-g M-f" . consult-flymake)
+         ;; Bindings in the `search-map' and `isearch-mode-map'
+         ("M-s M-b" . consult-buffer)
+         ("M-s M-f" . consult-find)
+         ("M-s M-g" . consult-ripgrep)
+         ("M-s M-i" . consult-imenu)
+         ("M-s M-y" . consult-yank-pop)
+         ("M-s M-s" . consult-outline)
          :map isearch-mode-map
-         ("M-e" . consult-isearch-history)         ;; orig. isearch-edit-string
-         ("M-s e" . consult-isearch-history)       ;; orig. isearch-edit-string
-         ("M-s l" . consult-line)                  ;; needed by consult-line to detect isearch
-         ("M-s L" . consult-line-multi)            ;; needed by consult-line to detect isearch
-         ;; Minibuffer history
-         :map minibuffer-local-map
-         ("M-s" . consult-history)                 ;; orig. next-matching-history-element
-         ("M-r" . consult-history))                 ;; orig. previous-matching-history-element
-
-
+         ("M-s M-l" . consult-line))
   :init
-  ;; Tweak the register preview for `consult-register-load',
-  ;; `consult-register-store' and the built-in commands.  This improves the
-  ;; register formatting, adds thin separator lines, register sorting and hides
-  ;; the window mode line.
-  (advice-add #'register-preview :override #'consult-register-window)
-  (setq register-preview-delay 0.5)
-
   ;; Use Consult to select xref locations with preview
   (setq xref-show-xrefs-function #'consult-xref
         xref-show-definitions-function #'consult-xref)
 
   :config
-  (consult-customize
-   consult-theme :preview-key '(:debounce 0.2 any)
-   consult-ripgrep consult-git-grep consult-grep consult-man
-   consult-bookmark consult-recent-file consult-xref
-   consult-source-bookmark consult-source-file-register
-   consult-source-recent-file consult-source-project-recent-file
-   ;; :preview-key "M-."
-   :preview-key '(:debounce 0.4 any))
+  (setq consult-line-numbers-widen t)
+  (setq consult-async-min-input 3)
+  (setq consult-async-input-debounce 0.5)
+  (setq consult-async-input-throttle 0.8)
+  (setq consult-narrow-key nil)
+  (setq consult-find-args
+        (concat "find . -not ( "
+                "-path *./.git* -prune "
+                "-or -path */.cache* -prune )"))
+  (setq consult-preview-key 'any)
+  (setq consult-project-function nil)
 
+  ;; Integration with the Pulsar package.
   (add-hook 'consult-after-jump-hook (lambda ()
-				       (pulsar-recenter-top)
-				       (pulsar-reveal-entry)))
+                                       (require 'pulsar)
+				                       (pulsar-recenter-top)
+				                       (pulsar-reveal-entry))))
 
-  ;; Optionally configure the narrowing key.
-  ;; Both < and C-+ work reasonably well.
-  (setq consult-narrow-key "<"))
-
-;;;;;;;;;;;;;;;;;;;;;
-;; Code Completion ;;
-;;;;;;;;;;;;;;;;;;;;;
+(use-package embark-consult
+  :after (embark consult))
 
 (use-package corfu
+  :after (savehist)
   :bind (:map corfu-map ("<tab>" . corfu-complete))
   :custom
   (tab-always-indent 'complete)
@@ -574,31 +842,6 @@
   :init
   (global-corfu-mode)
   (corfu-popupinfo-mode 1))
-
-;; Add extensions
-(use-package cape
-  :bind ("C-c p" . cape-prefix-map)
-  :init
-  (add-hook 'completion-at-point-functions #'cape-dabbrev)
-  (add-hook 'completion-at-point-functions #'cape-file)
-  (add-hook 'completion-at-point-functions #'cape-elisp-block))
-
-;;;;;;;;;;;;;;;;;;
-;; Text Editing ;;
-;;;;;;;;;;;;;;;;;;
-
-;; This package makes `C-w` and `M-w` act on the current
-;; line in case no region is selected. This makes
-;; copying the current line a lot easier.
-(use-package whole-line-or-region
-  :config
-  (whole-line-or-region-global-mode)
-  (with-eval-after-load 'embark
-  (cl-pushnew 'embark--mark-target
-              (alist-get 'whole-line-or-region-delete-region
-                         embark-around-action-hooks))))
-
-
 
 ;;;;;;;;;;;;;
 ;; Theming ;;
@@ -620,15 +863,30 @@
   (setq modus-themes-variable-pitch-ui t
         modus-themes-mixed-fonts t
         modus-themes-bold-constructs t
-        modus-themes-italic-constructs t))
+        modus-themes-italic-constructs t
+        modus-themes-headings
+        '((0 . (variable-pitch medium 1.4))
+          (1 . (variable-pitch medium 1.3))
+          (2 . (variable-pitch semibold 1.2))
+          (3 . (variable-pitch semibold 1.1))
+          (4 . (variable-pitch semibold 1.1))
+          (5 . (variable-pitch semibold 1.1))
+          (6 . (variable-pitch semibold 1.1))
+          (7 . (variable-pitch semibold 1.1))
+          (agenda-date . (semibold 1.2))
+          (agenda-structure . (variable-pitch medium 1.4))
+          (t . (variable-pitch semibold 1.1))))
+
+  (modus-themes-with-colors
+    (custom-set-faces
+     `(tim-org-tag-backlog ((,c :inherit italic :foreground ,green)))
+     `(tim-org-tag-meeting ((,c :inherit italic :foreground ,red)))
+     `(tim-org-tag-obligation ((,c :inherit italic :foreground ,cyan))))))
 
 ;;;; Theme Buffet -- Switch themes randomly based on the time of day.
 
 (use-package theme-buffet
-  :after (modus-themes ef-themes)
-  :functions
-  calendar-current-time-zone
-  theme-buffet-timer-hours
+  :demand t
   :bind
   (("<f5>" . theme-buffet-a-la-carte)
    ("C-<f5>" . theme-buffet-order-other-period))
@@ -640,7 +898,7 @@
         '(:night     ; Active between 00:00 and 04:00.
           (ef-trio-dark ef-winter ef-cherie)
           :twilight  ; Active between 04:00 and 08:00.
-	  (ef-dream ef-melissa-dark ef-owl)
+	      (ef-dream ef-melissa-dark ef-owl)
           :morning   ; Active between 08:00 and 12:00.
           (ef-trio-light ef-kassio ef-day)   
           :day       ; Active between 12:00 and 16:00.
@@ -685,16 +943,12 @@
 
 (use-package lin
   :config
-  (setopt lin-face 'lin-magenta)
+  (setopt lin-face 'lin-slate)
   (lin-global-mode 1))
 
 ;;;; Pulsar -- animations for selections, marking, etc.
 
 (use-package pulsar
-  :bind
-  (:map global-map
-    ("C-x l" . pulsar-pulse-line)                  ; overrides `count-lines-page'
-    ("C-x L" . pulsar-highlight-permanently-dwim)) ; or use `pulsar-highlight-temporarily-dwim'
   :config
   (setq pulsar-delay 0.055)
   (setq pulsar-iterations 5)
@@ -780,6 +1034,7 @@
            :fixed-pitch-family "Iosevka Curly Slab"
            :variable-pitch-family "Iosevka Etoile")
           (large
+           :inherit medium
            :default-height 180)
           (presentation
            :default-height 200)
