@@ -971,6 +971,7 @@ continue, per `org-agenda-skip-function'."
   :config
   ;; Set up a battery indicator on laptops.
   (when (timplication/portable-device-p)
+    (require 'battery)
     (setq battery-mode-line-format
           (cond
            ((eq battery-status-function #'battery-linux-proc-acpi)
