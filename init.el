@@ -1,5 +1,3 @@
-
-
 ;; -*- lexical-binding: t; -*-
 ;;
 ;; The above setting causes Elisp to use lexical scoping, which
@@ -338,6 +336,7 @@
   
            
   (setq org-directory (expand-file-name "~/Git/org/"))
+  (setq org-archive-location (expand-file-name "~/Git/org/archive.org::datetree/"))
   (setq org-imenu-depth 7)
 
   (add-to-list 'safe-local-variable-values '(org-hide-leading-stars . t))
@@ -364,18 +363,16 @@
                                            "%a%?")))
           `(("m" "Meeting" entry
              (file+headline "tasks.org" "Meetings")
-             ,(concat "* TODO %^{Title} %^g\n" with-scheduled-time)
+             ,(concat "* TODO [#A] %^{Title} :meeting:\n" with-scheduled-time)
              :empty-lines-after 1)
             ("o" "Obligation" entry
              (file+headline "tasks.org" "Obligations")
-             ,(concat "* TODO %^{Title} %^g\n" with-deadline-time)
+             ,(concat "* TODO [#A] %^{Title} :obligation:\n" with-deadline-time)
              :empty-lines-after 1)
             ("b" "Backlog Task" entry
              (file+headline "tasks.org" "Task Backlog")
-             ,(concat "* TODO %^{Title} %^g\n" without-time)
+             ,(concat "* TODO %^{Title} :backlog:\n" without-time)
              :empty-lines-after 1))))
-
-
   
   ;; calendar setup
   ;; Belgian Holidays
@@ -476,7 +473,8 @@
   (setq org-tag-faces
         '(("meeting" . tim-org-tag-meeting)
           ("obligation" . tim-org-tag-obligation)
-          ("backlog" . tim-org-tag-backlog)))
+          ("backlog" . tim-org-tag-backlog)
+          ("lecture" . tim-org-tag-meeting)))
 
   (defface tim-org-todo-alternative
     '((t :inherit (italic org-todo)))
@@ -709,6 +707,9 @@ continue, per `org-agenda-skip-function'."
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
 (use-package auctex
+  :bind
+  ((:map LaTeX-mode-map
+    ("C-c C-a" . nil)))
   :custom
   ;; Parse the file when saving it
   (TeX-auto-save t)
