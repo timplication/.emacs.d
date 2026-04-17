@@ -1,3 +1,5 @@
+
+
 ;; -*- lexical-binding: t; -*-
 ;;
 ;; The above setting causes Elisp to use lexical scoping, which
@@ -63,7 +65,6 @@
   ;; Make Emacs write its custom configuration to a separate file so
   ;; it does not clobber this manually written configuration.
   (setq custom-file (locate-user-emacs-file "~/.emacs.d/custom.el"))
-  (load-file custom-file)
 
   ;; Disable some of the GUI features such as tool bars,
   ;; scroll bars and menu bars.
@@ -690,7 +691,18 @@ continue, per `org-agenda-skip-function'."
   (pdf-loader-install)
   (add-hook 'pdf-view-mode-hook (lambda ()
 				  (pdf-view-roll-minor-mode)
-				  (pdf-view-themed-minor-mode))))
+				  (pdf-view-themed-minor-mode)))
+  
+  (defun tim/pdf-view-refresh-themed-buffers (&optional theme)
+    "Refreshes the PDF View themes if a pdf-view-mode buffer is active."
+    (interactive)
+    (require 'pdf-tools)
+    (dolist (buf (buffer-list))
+      (with-current-buffer buf
+        (when (eq major-mode 'pdf-view-mode)
+          (pdf-view-refresh-themed-buffer t)))))
+
+  (add-hook 'enable-theme-functions 'tim/pdf-view-refresh-themed-buffers))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; Filetype Specific - LaTeX ;;
