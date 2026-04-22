@@ -525,20 +525,10 @@ continue, per `org-agenda-skip-function'."
         (line-beginning-position 2))))
 
   (defvar tim-org-custom-daily-agenda
-    `((agenda "" ((org-agenda-overriding-header "Overdue\n")
-                  (org-agenda-time-grid nil)
-                  (org-agenda-start-on-weekday nil)
-                  (org-agenda-span 1)
-                  (org-agenda-show-all-dates nil)
-                  (org-scheduled-past-days 365)
-                  ;; Excludes today's scheduled items
-                  (org-scheduled-delay-days 1)
-                  (org-agenda-block-separator nil)
-                  (org-agenda-entry-types '(:scheduled))
-                  (org-agenda-skip-function '(org-agenda-skip-entry-if 'todo 'done))
-                  (org-agenda-skip-function '(org-agenda-skip-entry-if 'regexp "ROUTINE"))
-                  (org-agenda-day-face-function (lambda (date) 'org-agenda-date))
-                  (org-agenda-format-date "")))
+    `((tags-todo "*"
+                 ((org-agenda-overriding-header "\nAnytime\n")
+                  (org-agenda-skip-function #'tim-org-agenda-include-priority-no-timestamp)
+                  (org-agenda-block-separator nil)))
       (agenda "" ((org-agenda-overriding-header "\nToday\n")
                   (org-agenda-span 1)
                   (org-deadline-warning-days 0)
@@ -570,10 +560,20 @@ continue, per `org-agenda-skip-function'."
                   (org-agenda-block-separator nil)
                   (org-agenda-entry-types '(:deadline))
                   (org-agenda-skip-function '(org-agenda-skip-entry-if 'todo 'done))))
-      (tags-todo "*"
-                 ((org-agenda-overriding-header "\nAnytime\n")
-                  (org-agenda-skip-function #'tim-org-agenda-include-priority-no-timestamp)
-                  (org-agenda-block-separator nil)))))
+      (agenda "" ((org-agenda-overriding-header "Overdue\n")
+                  (org-agenda-time-grid nil)
+                  (org-agenda-start-on-weekday nil)
+                  (org-agenda-span 1)
+                  (org-agenda-show-all-dates nil)
+                  (org-scheduled-past-days 365)
+                  ;; Excludes today's scheduled items
+                  (org-scheduled-delay-days 1)
+                  (org-agenda-block-separator nil)
+                  (org-agenda-entry-types '(:scheduled))
+                  (org-agenda-skip-function '(org-agenda-skip-entry-if 'todo 'done))
+                  (org-agenda-skip-function '(org-agenda-skip-entry-if 'regexp "ROUTINE"))
+                  (org-agenda-day-face-function (lambda (date) 'org-agenda-date))
+                  (org-agenda-format-date "")))))
 
   (setq org-agenda-custom-commands
         `(("A" "Daily agenda and top priority tasks"
@@ -707,9 +707,6 @@ continue, per `org-agenda-skip-function'."
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
 (use-package auctex
-  :bind
-  ((:map LaTeX-mode-map
-    ("C-c C-a" . nil)))
   :custom
   ;; Parse the file when saving it
   (TeX-auto-save t)
@@ -732,6 +729,7 @@ continue, per `org-agenda-skip-function'."
   ;; The main entry point file is always called "main" in my projects.
   (TeX-master nil)
   :config
+  (keymap-unset LaTeX-mode-map "C-c C-a")
   ;; enable dutch spell checking in Emacs when using `\usepackage[dutch]{babel}'
   ;;(add-hook 'TeX-language-nl-hook (lambda () (ispell-change-dictionary "dutch")))
   ;; automatically refresh the viewer after compilation finishes.
@@ -922,7 +920,7 @@ continue, per `org-agenda-skip-function'."
           (ef-trio-dark ef-winter ef-cherie)))
 
   (theme-buffet-end-user)
-  (theme-buffet-timer-hours 1)
+  (theme-buffet-timer-hours 2)
   (theme-buffet-a-la-carte))
 
 ;;;; Spacious Padding -- Enable extra spacing around modelines and windows.
