@@ -137,9 +137,135 @@
   (setq window-sides-vertical nil)
   (setq switch-to-buffer-in-dedicated-window 'pop)
   (setq split-height-threshold 85)
-  (setq split-width-threshold 125)
-  (setq window-min-height 3)
-  (setq window-min-width 30)
+  (setq split-width-threshold 200)
+  (setq window-min-height 20)
+  (setq window-min-width 100)
+
+  ;; Window Placement
+
+  (defun tim-window-small-p ()
+    (or (and (numberp split-width-threshold)
+             (< (window-total-width) split-width-threshold))
+        (and (numberp split-height-threshold)
+             (> (window-total-height) split-height-threshold))))
+
+  (defun tim-more-than-three-windows-p (&optional frame)
+    (>= (length (window-list frame :no-minibuffer)) 3))
+
+  (defvar tim-window-window-sizes
+    '(:max-height (lambda () (floor (frame-height) 4))
+      :min-height 20
+      :max-width (lambda () (frame-width))
+      :min-width 100)
+    "Property list of maximum and minimum window sizes.
+     The property keys are `:max-height', `:min-height', `:max-width',
+     and `:min-width'.  They all accept a value of either a
+     number (integer or floating point) or a function.")
+
+  (defun tim-window--get-window-size (key)
+  "Extract the value of KEY from `tim-window-window-sizes'."
+  (when-let* ((value (plist-get tim-window-window-sizes key)))
+    (cond
+     ((functionp value)
+      (funcall value))
+     ((numberp value)
+      value)
+     (t
+      (error "The value of `%s' is neither a number nor a function" key)))))
+
+  (defun tim-window-select-fit-size (window)
+    (select-window window)
+    (fit-window-to-buffer
+     window
+     (tim-window--get-window-size :max-height)
+     (tim-window--get-window-size :min-height)
+     (tim-window--get-window-size :max-width)
+     (tim-window--get-window-size :min-width))
+    (when (or (window-in-direction 'above) (window-in-direction 'below))
+       (set-window-dedicated-p window t)))
+
+  (defun tim-window--get-display-buffer-below-or-pop ()
+    (list
+     ;; reuse a window currently showing a buffer with
+     ;; the same major mode as the window we are placing
+     #'display-buffer-reuse-mode-window
+     ;; otherwise, if the window is too small to fit
+     ;; a new horizontal window or there are more than
+     ;; three windows, create a buffer below this one.
+     ;; However, if there is space, then make a new
+     ;; horizontal window.
+     (if (or (tim-window-small-p)
+             (tim-more-than-three-windows-p))
+         #'display-buffer-below-selected
+       #'display-buffer-pop-up-window)))
+
+  (defun tim-window-display-buffer-below-or-pop (&rest args)
+    (let ((functions (tim-window--get-display-buffer-below-or-pop)))
+      (catch 'success
+        (dolist (fn functions)
+          (when (apply fn args)
+            (throw 'success fn))))))
+
+  (setq display-buffer-alist
+        ;; alist of (CONDITION . (ACTION FN LIST . OPTION ALIST))
+        `(;; bottom side window
+          ("\\*\\(Org \\(Select\\|Note\\)\\|Agenda Commands\\)\\*" ; the `org-capture' key selection and `org-add-log-note'
+           (display-buffer-in-side-window)
+           (dedicated . t)
+           (side . bottom)
+           (slot . 0)
+           (window-parameters . ((mode-line-format . none))))
+          ;; bottom buffer (NOT side window)
+          ((or . ((derived-mode . flymake-diagnostics-buffer-mode)
+                  (derived-mode . flymake-project-diagnostics-mode)
+                  (derived-mode . messages-buffer-mode)
+                  (derived-mode . backtrace-mode)))
+           (display-buffer-reuse-mode-window display-buffer-at-bottom)
+           (mode . ( flymake-diagnostics-buffer-mode flymake-project-diagnostics-mode
+                     messages-buffer-mode backtrace-mode))
+           (inhibit-switch-frame . t)
+           (window-height . 0.3)
+           (dedicated . t)
+           (preserve-size . (t . t))
+           (body-function . select-window))
+          ("\\*Embark Actions\\*"
+           (display-buffer-below-selected)
+           (window-height . fit-window-to-buffer)
+           (window-parameters . ((no-other-window . t)
+                                 (mode-line-format . none))))
+          ("\\*\\(Output\\|Register Preview\\).*"
+           (display-buffer-reuse-mode-window display-buffer-at-bottom)
+           (inhibit-switch-frame . t))
+          ;; Window that pops up at the bottom of the
+          ;; current buffer, unless there is space on the
+          ;; right hand side
+          ((or . ((derived-mode . occur-mode)
+                  (derived-mode . grep-mode)
+                  (derived-mode . Buffer-menu-mode)
+                  (derived-mode . log-view-mode)
+                  (derived-mode . help-mode) ; See the hooks for `visual-line-mode'
+                  "\\*\\(|Buffer List\\|Occur\\|compilation\\|vc-change-log\\|eldoc.*\\).*"
+                  "\\*\\vc-\\(incoming\\|outgoing\\|git : \\).*"))
+           (tim-window-display-buffer-below-or-pop)
+           (body-function . tim-window-select-fit-size))
+          ((or . ((derived-mode . vterm-mode) "\\*vterm\\*"))
+           (display-buffer-reuse-mode-window display-buffer-at-bottom)
+           (mode . (shell-mode eshell-mode comint-mode vterm-mode))
+           (inhibit-switch-frame . t)
+           (body-function . tim-window-select-fit-size))
+          ("\\*\\(Calendar\\|Bookmark Annotation\\|ert\\).*"
+           (display-buffer-reuse-mode-window display-buffer-below-selected)
+           (mode . (calendar-mode bookmark-edit-annotation-mode ert-results-mode))
+           (inhibit-switch-frame . t)
+           (dedicated . t)
+           (window-height . fit-window-to-buffer))
+          ;; open in a new tab
+          ((derived-mode . magit-status-mode)
+           (display-buffer-reuse-mode-window display-buffer-in-tab)
+           (mode . magit-status-mode)
+           (tab-name . (lambda (buffer _alist) (buffer-name buffer)))
+           (reusable-frames . :just-the-selected-frame)
+           (inhibit-switch-frame . t))))
   
   ;; Stop the default splash screen from showing up. 
   (setq inhibit-startup-screen t)
@@ -735,7 +861,15 @@ continue, per `org-agenda-skip-function'."
   ;;(add-hook 'TeX-language-nl-hook (lambda () (ispell-change-dictionary "dutch")))
   ;; automatically refresh the viewer after compilation finishes.
   (add-hook 'TeX-after-compilation-finished-functions #'TeX-revert-document-buffer))
- 
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;; Filetype Specific - Zig ;;
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+
+(use-package zig-mode
+  :config
+  (add-hook 'zig-mode-hook #'eglot-ensure))
+
 ;;;;;;;;;;;;;;;;;;;;;;;;
 ;; Terminal Emulation ;;
 ;;;;;;;;;;;;;;;;;;;;;;;;
