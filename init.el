@@ -729,7 +729,8 @@ continue, per `org-agenda-skip-function'."
   ;; The main entry point file is always called "main" in my projects.
   (TeX-master nil)
   :config
-  (keymap-unset LaTeX-mode-map "C-c C-a")
+  (add-hook 'LaTeX-mode-hook (lambda ()
+                               (keymap-unset LaTeX-mode-map "C-c C-a")))
   ;; enable dutch spell checking in Emacs when using `\usepackage[dutch]{babel}'
   ;;(add-hook 'TeX-language-nl-hook (lambda () (ispell-change-dictionary "dutch")))
   ;; automatically refresh the viewer after compilation finishes.
