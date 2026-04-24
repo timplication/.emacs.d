@@ -914,9 +914,9 @@ continue, per `org-agenda-skip-function'."
           :morning   ; Active between 08:00 and 12:00.
           (ef-trio-light ef-kassio ef-day)   
           :day       ; Active between 12:00 and 16:00.
-          (ef-trio-light ef-kassio ef-day)            
+          (ef-summer ef-orange ef-melissa-light)            
           :afternoon ; Active between 16:00 and 20:00.
-          (ef-summer ef-orange ef-melissa-light)  
+          (ef-dream ef-melissa-dark ef-owl)  
           :evening   ; Active between 20:00 and 00:00.
           (ef-trio-dark ef-winter ef-cherie)))
 
